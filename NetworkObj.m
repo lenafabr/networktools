@@ -19,6 +19,7 @@ properties
     nodevals
     edgevals
     loops
+    Name
     
     edgepath % coordinates of path along each edge
     cumedgelen % cumulative lengths along each edge
@@ -34,7 +35,7 @@ methods
         NT.dim = 2; % spatial dimension        
         NT.maxdeg = 10; % maximum allowed degree              
         NT.loops = [];
-        
+        NT.Name = '';
         
         if (exist('fname','var'))
             if (exist('options','var'))
@@ -432,26 +433,14 @@ methods
             setedgelens = 0;
         end
         
-        numedge=length(NT.edgepath);%get cell size
-        for num =whichedges%go to individual cell
-            [seg,~]=size(NT.edgepath{num});%get path coord size
-            dx(1)=0;%set a distance vector for x
-            dy(1)=0;%set a distance vector for y
-            dx(2:seg)=NT.edgepath{num}(2:seg,1)-NT.edgepath{num}(1:seg-1,1);
-            dy(2:seg)=NT.edgepath{num}(2:seg,2)-NT.edgepath{num}(1:seg-1,2);
-            if (NT.dim==3)
-                dz(1) = 0;
-                dz(2:seg) = NT.edgepath{num}(2:seg,3)-NT.edgepath{num}(1:seg-1,3);
-                dl = sqrt(dx.^2+dy.^2+dz.^2);
-            else
-                dl = sqrt(dx.^2+dy.^2);
-            end
-            for segnum = 1:seg
-                L= sum(dl(1:segnum));
-                NT.cumedgelen{num}(segnum)=L;
-            end
+        for ec = whichedges
+            path= NT.edgepath{ec};
+            
+            pathdiffs = path(2:end,:) - path(1:end-1,:);
+            pathlens = sqrt(sum(pathdiffs.^2,2));
+            
+            NT.cumedgelen{ec} = [0,cumsum(pathlens')]
         end
-        
         
         if (setedgelens)
             % reset edge lens from cumulative
@@ -624,6 +613,7 @@ methods
      end
      
      function plotNetwork(NT,options)
+         
          opt.labels = 0;
          opt.nodeplotopt = {'b','filled'};
          opt.nodesize = 20;
@@ -632,21 +622,20 @@ methods
          opt.plotedges = 1;
          opt.edgeplotopt = {'MarkerSize',1};
          % plot curved paths instead of straight edges
-         opt.plotedgepath = 1;
+         opt.plotedgepath = 0;
          
          if (exist('options','var'))
              opt =copyStruct(options,opt,1);
          end
          
-         nodepos = NT.nodepos;
+         if (length(opt.nodesize)==1)
+             opt.nodesize = opt.nodesize*ones(NT.nnode,1);
+         end
+         
+         dim = NT.dim;
+         nodepos = NT.nodepos; 
          edgenodes = NT.edgenodes;
          
-         
-         if (length(opt.nodesize)==1)
-             opt.nodesize = opt.nodesize*ones(size(nodepos,1),1);
-         end
-                           
-         dim = size(nodepos,2);
          % if (size(opt.nodecolor,1)==1)
          %     opt.nodecolor = repmat(opt.nodecolor,size(nodepos,1),1);
          % end
