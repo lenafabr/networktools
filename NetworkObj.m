@@ -142,6 +142,15 @@ methods
             
     end
     
+    function setEdgeLens(NT)
+        % recalculate edge lengths, based on euclidean distance
+        
+        for ec = 1:NT.nedge
+            n1 = NT.edgenodes(ec,1); n2 = NT.edgenodes(ec,2);
+            NT.edgelens(ec) = norm(NT.nodepos(n2,:)-NT.nodepos(n1,:));
+        end
+    end
+    
     function removeDoubleEdges(NT)
         %% get rid of all duplicate edges, so you only have one edge
         % between each pair of nodes
@@ -253,25 +262,37 @@ methods
         fprintf(of,'%s\n','# file defining network structure')
         fprintf(of,'%s\n\n','# made with matlab NetworkObj output')
         
-        fprintf(of,'%s \n','# list of node indices and xy positions and values')        
-        nodefmtstring = ['NODE %d ' repmat(['%20.10f '],1,NT.dim+1) '\n'];
-        nodelblfmtstring = ['NODE %d ' repmat(['%20.10f '],1,NT.dim+1) '%s \n'];
+        fprintf(of,'%s \n','# list of node indices and xy positions and values')   
+        if (isempty(NT.nodevals))
+            nodefmtstring = ['NODE %d ' repmat(['%20.10f '],1,NT.dim) '\n'];
+            nodelblfmtstring = ['NODE %d ' repmat(['%20.10f '],1,NT.dim) '%s \n'];
+        else
+            nodefmtstring = ['NODE %d ' repmat(['%20.10f '],1,NT.dim+1) '\n'];
+            nodelblfmtstring = ['NODE %d ' repmat(['%20.10f '],1,NT.dim+1) '%s \n'];
+        end
         %
         for pc = 1:size(NT.nodepos)
             
-            if (isempty(NT.nodevals))
-                val = 0.0;              
+            if (isempty(NT.nodevals)) % do not output separate node values
+                if (exist('nodelabels','var'))
+                    fprintf(of,nodelblfmtstring,pc, NT.nodepos(pc,:),nodelabels{pc});
+                elseif (~isempty(NT.nodelabels))
+                    fprintf(of,nodelblfmtstring,pc, NT.nodepos(pc,:), NT.nodelabels{pc});
+                else
+                    fprintf(of,nodefmtstring,pc, NT.nodepos(pc,:));
+                end
             else
-                val = NT.nodevals(pc);                
+                val = NT.nodevals(pc); % include specific node values
+                
+                if (exist('nodelabels','var'))
+                    fprintf(of,nodelblfmtstring,pc, NT.nodepos(pc,:), val,nodelabels{pc});
+                elseif (~isempty(NT.nodelabels))
+                    fprintf(of,nodelblfmtstring,pc, NT.nodepos(pc,:), val,NT.nodelabels{pc});
+                else
+                    fprintf(of,nodefmtstring,pc, NT.nodepos(pc,:), val);
+                end
             end
             
-            if (exist('nodelabels','var'))
-                fprintf(of,nodelblfmtstring,pc, NT.nodepos(pc,:), val,nodelabels{pc});
-            elseif (~isempty(NT.nodelabels))
-                fprintf(of,nodelblfmtstring,pc, NT.nodepos(pc,:), val,NT.nodelabels{pc});
-            else
-                fprintf(of,nodefmtstring,pc, NT.nodepos(pc,:), val);
-            end
         end
         % edge information
         edgefmtstring = 'EDGE %d %d %d %20.10f\n';
