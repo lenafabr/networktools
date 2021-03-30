@@ -59,7 +59,7 @@ methods
         % load a network from file
         [nodepos,edgenodes,edgevals,nodelabels] = loadnetworkstruct(fname);
         
-        edgevals
+        edgevals;
         
         if (opt.dim>0)
             NT.nodepos = nodepos(:,1:opt.dim);
@@ -172,7 +172,7 @@ methods
         % between each pair of nodes
         badind = [];
         newedgenodes = [];
-        edgenodes= NT.edgenodes
+        edgenodes= NT.edgenodes;
         for ec1 = 1:NT.nedge
             duplicatefound = 0;
             for ec2 = ec1+1:NT.nedge
@@ -340,8 +340,8 @@ methods
         % set up a connectivity matrix
         A = zeros(size(NT.nodepos,1),size(NT.nodepos,1));
         for ec = 1:size(NT.edgenodes,1)
-            A(NT.edgenodes(ec,1),NT.edgenodes(ec,2)) = 1;
-            A(NT.edgenodes(ec,2),NT.edgenodes(ec,1)) = 1;
+            A(NT.edgenodes(ec,1),NT.edgenodes(ec,2)) = NT.edgelens(ec);
+            A(NT.edgenodes(ec,2),NT.edgenodes(ec,1)) = NT.edgelens(ec);
         end
         % make into a graph structure
         NTgraph = graph(A);
@@ -516,33 +516,40 @@ methods
      end
    
      function breakEdge(NT,ectarget,breakfrac,dosetup)
-         % break up an edge in the network, creating a new degree-2 node along it
-         % new node is located at fraction breakfrac along the edge
+        % break up an edge in the network, creating a new degree-2 node along it
+        % new node is located at fraction breakfrac along the edge
         
-         if (~exist('dosetup','var'))
-             dosetup = 1;
-         end
-         
+        if (~exist('dosetup','var'))
+            dosetup = 1;
+        end
+
         % get new node position
         shiftlen = NT.edgelens(ectarget)*breakfrac;
         newpos = interp1(NT.cumedgelen{ectarget},NT.edgepath{ectarget},shiftlen);
-        
+
         nnode = NT.nnode; nedge = NT.nedge;
-        NT.nodepos(nnode+1,:) = newpos;        
+        NT.nodepos(nnode+1,:) = newpos;
+
         % add a new edge
         NT.edgenodes(end+1,:) = [NT.edgenodes(ectarget,2),nnode+1];
         % replace previous edge with one that goes to new node
         NT.edgenodes(ectarget,2) = nnode+1;
-        
+
         if (dosetup)
         % reset network
         NT.setupNetwork();
         
-        % interpolate paths on these new edges
-        % ZUBEN: FIX THIS PLEASE
-        NT.interpolateEdgePaths(2,[ectarget,nedge+1]);
-        %NT.reinterpolateEdgePaths(NT,dxwant)
-        NT.setCumEdgeLen(1);
+
+        % using old edgepath set new edgepaths as two pieces of original
+        epath = NT.edgepath{ectarget};
+        NT.edgepath{nedge+1} = epath(round(breakfrac*length(epath)):end,:);
+        NT.edgepath{ectarget}= epath(1:round(breakfrac*length(epath)),:);
+        % set cumulative edge length
+        NT.setCumEdgeLen();
+        % then update edgelens (TODO should be able to do this in call to
+        % cumedgelen....)
+        NT.edgelens(nedge+1) = NT.cumedgelen{nedge+1}(end);
+        NT.edgelens(ectarget) = NT.cumedgelen{ectarget}(end);
         end
      end
      
