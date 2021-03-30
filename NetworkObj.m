@@ -14,6 +14,7 @@ properties
     edgenodes % nodes connected by each edge
     nodenodes % nodes connected to each node
     nodeedges % edges connected to each node
+    edgeedges % edges connected to each edge
     edgelens % edge lengths
     nodelabels % string label for each node (permeability or reservoir)
     nodevals
@@ -126,6 +127,30 @@ methods
         NT.nodenodes = NT.nodenodes(:,1:NT.maxdeg);
         NT.nodeedges = NT.nodeedges(:,1:NT.maxdeg);
         
+        
+         % set edgeedge connections
+        for ec = 1:NT.nedge
+            n1 = NT.edgenodes(ec,1); n2 = NT.edgenodes(ec,2);
+            % edgeedge array gives, for a given edge: 
+            % which node is a neighbor edge attached to (1 or 2)
+            % what is the index of that neighbor edge
+            ct = 0;
+            for cc = 1:NT.degrees(n1)
+                ec2 = NT.nodeedges(n1,cc); % adjacent edge
+                if (ec~=ec2)
+                    ct = ct+1;
+                    NT.edgeedges(ec,:,ct) = [1,ec2];
+                end
+            end
+            for cc = 1:NT.degrees(n2)
+                ec2 = NT.nodeedges(n2,cc); % adjacent edge
+                if (ec~=ec2)
+                    ct = ct+1;
+                    NT.edgeedges(ec,:,ct) = [2,ec2];
+                end
+            end
+        end
+        
         if (resetedgepath || doedgelens)            
             % reset edge paths and lengths
             NT.edgepath = cell(NT.nedge,1);
@@ -140,15 +165,6 @@ methods
             NT.interpolateEdgePaths(2);
         end
             
-    end
-    
-    function setEdgeLens(NT)
-        % recalculate edge lengths, based on euclidean distance
-        
-        for ec = 1:NT.nedge
-            n1 = NT.edgenodes(ec,1); n2 = NT.edgenodes(ec,2);
-            NT.edgelens(ec) = norm(NT.nodepos(n2,:)-NT.nodepos(n1,:));
-        end
     end
     
     function removeDoubleEdges(NT)
@@ -218,16 +234,16 @@ methods
         % mapnew2old(i) = index of new node i in the old node list
         % mapold2new(i) = index of old node i in new node list
         
-        [newnodepos,newedgenodes,mapold2new] = truncateNetworkNodes(keepind,NT.nodepos,NT.edgenodes);
+        [newnodepos,newedgenodes,mapold2new,mapnew2oldedge] = truncateNetworkNodes(keepind,NT.nodepos,NT.edgenodes);
         
         NT.nodepos = newnodepos;
         NT.edgenodes = newedgenodes;
         
-        NT.setupNetwork()
+        NT.setupNetwork()                
                 
         if (~isempty(NT.nodevals)); NT.nodevals = NT.nodevals(keepind); end
-        if (~isempty(NT.edgevals)); NT.edgevals = NT.edgevals(keepind); end
-     
+        if (~isempty(NT.edgevals)); NT.edgevals = NT.edgevals(mapnew2oldedge); end
+        if (~isempty(NT.edgepath)); NT.edgepath = NT.edgepath(mapnew2oldedge); end
     end
     
     function addNodes(NT,nodepos,connect)
@@ -262,37 +278,25 @@ methods
         fprintf(of,'%s\n','# file defining network structure')
         fprintf(of,'%s\n\n','# made with matlab NetworkObj output')
         
-        fprintf(of,'%s \n','# list of node indices and xy positions and values')   
-        if (isempty(NT.nodevals))
-            nodefmtstring = ['NODE %d ' repmat(['%20.10f '],1,NT.dim) '\n'];
-            nodelblfmtstring = ['NODE %d ' repmat(['%20.10f '],1,NT.dim) '%s \n'];
-        else
-            nodefmtstring = ['NODE %d ' repmat(['%20.10f '],1,NT.dim+1) '\n'];
-            nodelblfmtstring = ['NODE %d ' repmat(['%20.10f '],1,NT.dim+1) '%s \n'];
-        end
+        fprintf(of,'%s \n','# list of node indices and xy positions and values')        
+        nodefmtstring = ['NODE %d ' repmat(['%20.10f '],1,NT.dim+1) '\n'];
+        nodelblfmtstring = ['NODE %d ' repmat(['%20.10f '],1,NT.dim+1) '%s \n'];
         %
         for pc = 1:size(NT.nodepos)
             
-            if (isempty(NT.nodevals)) % do not output separate node values
-                if (exist('nodelabels','var'))
-                    fprintf(of,nodelblfmtstring,pc, NT.nodepos(pc,:),nodelabels{pc});
-                elseif (~isempty(NT.nodelabels))
-                    fprintf(of,nodelblfmtstring,pc, NT.nodepos(pc,:), NT.nodelabels{pc});
-                else
-                    fprintf(of,nodefmtstring,pc, NT.nodepos(pc,:));
-                end
+            if (isempty(NT.nodevals))
+                val = 0.0;              
             else
-                val = NT.nodevals(pc); % include specific node values
-                
-                if (exist('nodelabels','var'))
-                    fprintf(of,nodelblfmtstring,pc, NT.nodepos(pc,:), val,nodelabels{pc});
-                elseif (~isempty(NT.nodelabels))
-                    fprintf(of,nodelblfmtstring,pc, NT.nodepos(pc,:), val,NT.nodelabels{pc});
-                else
-                    fprintf(of,nodefmtstring,pc, NT.nodepos(pc,:), val);
-                end
+                val = NT.nodevals(pc);                
             end
             
+            if (exist('nodelabels','var'))
+                fprintf(of,nodelblfmtstring,pc, NT.nodepos(pc,:), val,nodelabels{pc});
+            elseif (~isempty(NT.nodelabels))
+                fprintf(of,nodelblfmtstring,pc, NT.nodepos(pc,:), val,NT.nodelabels{pc});
+            else
+                fprintf(of,nodefmtstring,pc, NT.nodepos(pc,:), val);
+            end
         end
         % edge information
         edgefmtstring = 'EDGE %d %d %d %20.10f\n';
@@ -460,11 +464,12 @@ methods
             pathdiffs = path(2:end,:) - path(1:end-1,:);
             pathlens = sqrt(sum(pathdiffs.^2,2));
             
-            NT.cumedgelen{ec} = [0,cumsum(pathlens')]
+            NT.cumedgelen{ec} = [0,cumsum(pathlens')];
         end
         
         if (setedgelens)
             % reset edge lens from cumulative
+            NT.edgelens = zeros(NT.nedge,1);
             for ec = 1:NT.nedge
                 NT.edgelens(ec) = NT.cumedgelen{ec}(end);
             end
@@ -534,7 +539,9 @@ methods
         NT.setupNetwork();
         
         % interpolate paths on these new edges
+        % ZUBEN: FIX THIS PLEASE
         NT.interpolateEdgePaths(2,[ectarget,nedge+1]);
+        %NT.reinterpolateEdgePaths(NT,dxwant)
         NT.setCumEdgeLen(1);
         end
      end
@@ -636,12 +643,13 @@ methods
      function plotNetwork(NT,options)
          
          opt.labels = 0;
-         opt.nodeplotopt = {'b','filled'};
+         opt.nodeplotopt = {'filled'};
          opt.nodesize = 20;
-         %opt.nodecolor = [0 0 0];
+         opt.edgecolor = [0 0 0];
+         opt.nodecolor = [0 0 1];
          opt.plotnodes = 1:NT.nnode;
          opt.plotedges = 1;
-         opt.edgeplotopt = {'MarkerSize',1};
+         opt.edgeplotopt = {'LineWidth',.5};
          % plot curved paths instead of straight edges
          opt.plotedgepath = 0;
          
@@ -651,6 +659,12 @@ methods
          
          if (length(opt.nodesize)==1)
              opt.nodesize = opt.nodesize*ones(NT.nnode,1);
+         end
+         if (size(opt.nodecolor,1)==1)
+             opt.nodecolor = opt.nodecolor.*ones(NT.nnode,3);
+         end
+         if (size(opt.edgecolor,1)==1)
+             opt.edgecolor = opt.edgecolor.*ones(NT.nedge,3);
          end
          
          dim = NT.dim;
@@ -667,14 +681,14 @@ methods
                      % plot curved paths of the edges
                      path = NT.edgepath{ec};
                      if (dim==2)
-                         plot(path(:,1),path(:,2),'k',opt.edgeplotopt{:})
+                         plot(path(:,1),path(:,2),'Color',opt.edgecolor(ec,:),opt.edgeplotopt{:})
                      else
                          plot3(path(:,1),path(:,2),path(:,3),'k.-',opt.edgeplotopt{:})
                      end
                  else
                      p1 = edgenodes(ec,1); p2 = edgenodes(ec,2);
                      if (dim==2)
-                         plot(nodepos([p1,p2],1),nodepos([p1,p2],2),'k',opt.edgeplotopt{:})
+                         plot(nodepos([p1,p2],1),nodepos([p1,p2],2),'Color',opt.edgecolor(ec,:),opt.edgeplotopt{:})
                      else
                          plot3(nodepos([p1,p2],1),nodepos([p1,p2],2),nodepos([p1,p2],3),'k',opt.edgeplotopt{:})
                      end
@@ -684,10 +698,8 @@ methods
              axis equal
          end
          if (~isempty(opt.plotnodes))
-             %plot(nodepos(:,1),nodepos(:,2),'b.',opt.nodeplotopt{:})
-             %scatter(nodepos(opt.plotnodes,1),nodepos(opt.plotnodes,2),opt.nodesize(opt.plotnodes),opt.nodecolor(opt.plotnodes)',opt.nodeplotopt{:})
              if (dim==2)
-                 scatter(nodepos(opt.plotnodes,1),nodepos(opt.plotnodes,2),opt.nodesize(opt.plotnodes),opt.nodeplotopt{:})
+                 scatter(nodepos(opt.plotnodes,1),nodepos(opt.plotnodes,2),opt.nodesize(opt.plotnodes),opt.nodecolor(opt.plotnodes,:),opt.nodeplotopt{:})
              else
                  scatter3(nodepos(opt.plotnodes,1),nodepos(opt.plotnodes,2),nodepos(opt.plotnodes,3),...
                      opt.nodesize(opt.plotnodes),opt.nodeplotopt{:})
@@ -729,6 +741,31 @@ methods
          
          % recalculate cumulative lengths and total edge lengths
          NT.setCumEdgeLen(1:NT.nedge,true)
+     end
+     
+     function setEdgeLens(NT,euclidean)
+         % recalculate edge lengths, based on euclidean distance or
+         % cumedgelens
+         if (~exist('euclidean'))
+             euclidean = false;
+         end
+         
+         NT.edgelens = zeros(NT.nedge,1);
+         
+         if (euclidean)
+             for ec = 1:NT.nedge
+                 n1 = NT.edgenodes(ec,1); n2 = NT.edgenodes(ec,2);
+                 NT.edgelens(ec) = norm(NT.nodepos(n2,:)-NT.nodepos(n1,:));
+             end
+         else
+             if (isempty(NT.cumedgelen))
+                 NT.setCumEdgeLen(1:NT.nedge,true);
+             else
+                 for ec = 1:NT.nedge
+                     NT.edgelens(ec) = NT.cumedgelen{ec}(end);
+                 end
+             end
+         end
      end
 end
 end
