@@ -516,8 +516,9 @@ methods
      end
    
      function breakEdge(NT,ectarget,breakfrac,dosetup)
-        % break up an edge in the network, creating a new degree-2 node along it
-        % new node is located at fraction breakfrac along the edge
+        % break up an edge in the network, creating a new degree-2 node 
+        % along it. new node is located at the edgepath point that is 
+        % closest to fraction breakfrac along edge
         
         if (~exist('dosetup','var'))
             dosetup = 1;
@@ -525,32 +526,35 @@ methods
 
         % get new node position
         shiftlen = NT.edgelens(ectarget)*breakfrac;
-        newpos = interp1(NT.cumedgelen{ectarget},NT.edgepath{ectarget},shiftlen);
+        [~,ind] = min(abs(NT.cumedgelen{ectarget}-shiftlen));
+        newpos = NT.edgepath{ectarget}(ind,:);
 
         nnode = NT.nnode; nedge = NT.nedge;
         NT.nodepos(nnode+1,:) = newpos;
 
         % add a new edge
-        NT.edgenodes(end+1,:) = [NT.edgenodes(ectarget,2),nnode+1];
+        NT.edgenodes(end+1,:) = [nnode+1,NT.edgenodes(ectarget,2)];
         % replace previous edge with one that goes to new node
         NT.edgenodes(ectarget,2) = nnode+1;
 
         if (dosetup)
-        % reset network
-        NT.setupNetwork();
-        
+            % reset network
+            NT.setupNetwork();
 
-        % using old edgepath set new edgepaths as two pieces of original
-        epath = NT.edgepath{ectarget};
-        NT.edgepath{nedge+1} = epath(round(breakfrac*length(epath)):end,:);
-        NT.edgepath{ectarget}= epath(1:round(breakfrac*length(epath)),:);
-        % set cumulative edge length
-        NT.setCumEdgeLen();
-        % then update edgelens (TODO should be able to do this in call to
-        % cumedgelen....)
-        NT.edgelens(nedge+1) = NT.cumedgelen{nedge+1}(end);
-        NT.edgelens(ectarget) = NT.cumedgelen{ectarget}(end);
+            % using old edgepath set new edgepaths as two pieces of original
+            epath = NT.edgepath{ectarget};
+            NT.edgepath{nedge+1} = epath(ind:end,:);
+            NT.edgepath{ectarget}= epath(1:ind,:);
+
+            % set cumulative edge length
+            NT.setCumEdgeLen();
+
+            % then update edgelens (TODO should be able to do this in call to
+            % cumedgelen....)
+            NT.edgelens(nedge+1) = NT.cumedgelen{nedge+1}(end);
+            NT.edgelens(ectarget) = NT.cumedgelen{ectarget}(end);
         end
+
      end
      
      function outputPDB(NT,outfile,scl)

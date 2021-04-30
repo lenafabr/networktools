@@ -1,4 +1,6 @@
 function [NT,skelimage,opt] = getNetworkFromBWImage(bwimg,options)
+
+
 % skeletonize a B&W image and extract a network structure
 % input: 
 % bwimg = black and white image (nxm array of integer 0s and 1s)
@@ -317,6 +319,9 @@ NT.edgepath = smoothedges;
 NT.setupNetwork();
 NT.removeDoubleEdges();
 NT.setupNetwork();
+NT.setEdgeLens();
+NT.edgepath = smoothedges;
+NT.setCumEdgeLen();
 
 %% trim short terminal nodes
 
