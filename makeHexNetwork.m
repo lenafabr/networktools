@@ -8,7 +8,7 @@ r = 1; % center to corner of hex
 w = r*cos(pi/6); % half-width of hex
 
 % first row of points
-y = 0
+y = 0;
 pt1 = [(0:N)'*2*w y*ones(N+1,1)];
 
 % 2nd row of points
