@@ -517,18 +517,25 @@ methods
    
      function breakEdge(NT,ectarget,breakfrac,dosetup)
         % break up an edge in the network, creating a new degree-2 node 
-        % along it. new node is located at the edgepath point that is 
-        % closest to fraction breakfrac along edge
+        % along it. New node is interpolated along edgepath 
         
         if (~exist('dosetup','var'))
             dosetup = 1;
         end
 
+        if (isempty(NT.cumedgelen))
+            error('cannot break edge until cumedgelen is set')
+        end
+        
         % get new node position
         shiftlen = NT.edgelens(ectarget)*breakfrac;
-        [~,ind] = min(abs(NT.cumedgelen{ectarget}-shiftlen));
-        newpos = NT.edgepath{ectarget}(ind,:);
-
+        %[~,ind] = min(abs(NT.cumedgelen{ectarget}-shiftlen));
+        cumlen = NT.cumedgelen{ectarget};
+        t_a = interp1(cumlen,1:length(cumlen),shiftlen);        
+        ind = floor(t_a);
+        frac = t_a-(ind);
+        newpos = NT.edgepath{ectarget}(ind,:)*frac + NT.edgepath{ectarget}(ind+1,:)*(1-frac);
+        
         nnode = NT.nnode; nedge = NT.nedge;
         NT.nodepos(nnode+1,:) = newpos;
 
@@ -543,8 +550,8 @@ methods
 
             % using old edgepath set new edgepaths as two pieces of original
             epath = NT.edgepath{ectarget};
-            NT.edgepath{nedge+1} = epath(ind:end,:);
-            NT.edgepath{ectarget}= epath(1:ind,:);
+            NT.edgepath{nedge+1} = [newpos; epath(ind+1:end,:)];
+            NT.edgepath{ectarget}= [epath(1:ind,:); newpos];
 
             % set cumulative edge length
             NT.setCumEdgeLen();
@@ -777,6 +784,38 @@ methods
                  end
              end
          end
+     end
+     
+     function [xy,edgeind,edgepos,distance] = getNearestEdgePoint(NT,pts)
+         % for a set of points (pts, size nxdim) find the nearest point
+         % along the edge paths of the network
+         % returns: 
+         % xy = coordinates of the nearest points along interpolated edge paths
+         % edgeind = indices of nearest edge to each point
+         % edgepos = interpolated fractional distance along each edge to the point
+         % distance = distance from original point to the mapped one
+         % uses linear interpolation
+         
+         if (isempty(NT.edgepath))
+             error('need to set edge path first')
+         end
+         
+         distance = inf*ones(size(pts,1),1);
+         for ec = 1:NT.nedge
+             curvexy = NT.edgepath{ec};
+             [xytmp,dist,t_a] = distance2curve(curvexy,pts);
+             
+             % which indices to update
+             ind = find(dist<distance);
+             
+             if (~isempty(ind))
+                 xy(ind,:) = xytmp(ind,:);
+                 distance(ind) = dist(ind);
+                 edgepos(ind) = t_a(ind);
+                 edgeind(ind) = ec;
+             end
+         end
+         
      end
 end
 end
