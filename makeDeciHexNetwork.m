@@ -55,7 +55,8 @@ function NT = makeDeciHexNetwork(N, celldiam, options)
     
     %interpolate edgepaths
     NT.interpolateEdgePaths(2);
-    NT.setCumEdgeLen()
+    % resent lengths and cumulative lengths
+    NT.setCumEdgeLen(1:NT.nedge,true)
     
     %
     if (opt.dodisplay)

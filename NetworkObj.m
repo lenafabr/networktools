@@ -244,6 +244,7 @@ methods
         if (~isempty(NT.nodevals)); NT.nodevals = NT.nodevals(keepind); end
         if (~isempty(NT.edgevals)); NT.edgevals = NT.edgevals(mapnew2oldedge); end
         if (~isempty(NT.edgepath)); NT.edgepath = NT.edgepath(mapnew2oldedge); end
+        if (~isempty(NT.edgelens)); NT.edgelens = NT.edgelens(mapnew2oldedge); end
     end
     
     function addNodes(NT,nodepos,connect)
@@ -516,46 +517,75 @@ methods
      end
    
      function breakEdge(NT,ectarget,breakfrac,dosetup)
-        % break up an edge in the network, creating a new degree-2 node 
-        % along it. new node is located at the edgepath point that is 
-        % closest to fraction breakfrac along edge
+         % break up an edge in the network, creating a new degree-2 node along it
+         % new node is located at fraction breakfrac along the edge
         
-        if (~exist('dosetup','var'))
-            dosetup = 1;
-        end
-
+         if (~exist('dosetup','var'))
+             dosetup = 1;
+         end
+         
         % get new node position
         shiftlen = NT.edgelens(ectarget)*breakfrac;
-        [~,ind] = min(abs(NT.cumedgelen{ectarget}-shiftlen));
-        newpos = NT.edgepath{ectarget}(ind,:);
-
+        newpos = interp1(NT.cumedgelen{ectarget},NT.edgepath{ectarget},shiftlen);
+        
         nnode = NT.nnode; nedge = NT.nedge;
-        NT.nodepos(nnode+1,:) = newpos;
-
+        NT.nodepos(nnode+1,:) = newpos;        
         % add a new edge
-        NT.edgenodes(end+1,:) = [nnode+1,NT.edgenodes(ectarget,2)];
+        NT.edgenodes(end+1,:) = [NT.edgenodes(ectarget,2),nnode+1];
         % replace previous edge with one that goes to new node
         NT.edgenodes(ectarget,2) = nnode+1;
-
+        
         if (dosetup)
-            % reset network
-            NT.setupNetwork();
-
-            % using old edgepath set new edgepaths as two pieces of original
-            epath = NT.edgepath{ectarget};
-            NT.edgepath{nedge+1} = epath(ind:end,:);
-            NT.edgepath{ectarget}= epath(1:ind,:);
-
-            % set cumulative edge length
-            NT.setCumEdgeLen();
-
-            % then update edgelens (TODO should be able to do this in call to
-            % cumedgelen....)
-            NT.edgelens(nedge+1) = NT.cumedgelen{nedge+1}(end);
-            NT.edgelens(ectarget) = NT.cumedgelen{ectarget}(end);
+        % reset network
+        NT.setupNetwork();
+        
+        % interpolate paths on these new edges
+        NT.interpolateEdgePaths(2,[ectarget,nedge+1]);
+        NT.setCumEdgeLen(1);
         end
-
      end
+     
+%      function breakEdge(NT,ectarget,breakfrac,dosetup)
+%         % break up an edge in the network, creating a new degree-2 node 
+%         % along it. new node is located at the edgepath point that is 
+%         % closest to fraction breakfrac along edge
+%         
+%         if (~exist('dosetup','var'))
+%             dosetup = 1;
+%         end
+% 
+%         % get new node position
+%         shiftlen = NT.edgelens(ectarget)*breakfrac;
+%         [~,ind] = min(abs(NT.cumedgelen{ectarget}-shiftlen));
+%         newpos = NT.edgepath{ectarget}(ind,:);
+% 
+%         nnode = NT.nnode; nedge = NT.nedge;
+%         NT.nodepos(nnode+1,:) = newpos;
+% 
+%         % add a new edge
+%         NT.edgenodes(end+1,:) = [nnode+1,NT.edgenodes(ectarget,2)];
+%         % replace previous edge with one that goes to new node
+%         NT.edgenodes(ectarget,2) = nnode+1;
+% 
+%         if (dosetup)
+%             % reset network
+%             NT.setupNetwork();
+% 
+%             % using old edgepath set new edgepaths as two pieces of original
+%             epath = NT.edgepath{ectarget};
+%             NT.edgepath{nedge+1} = epath(ind:end,:);
+%             NT.edgepath{ectarget}= epath(1:ind,:);
+% 
+%             % set cumulative edge length
+%             NT.setCumEdgeLen();
+% 
+%             % then update edgelens (TODO should be able to do this in call to
+%             % cumedgelen....)
+%             NT.edgelens(nedge+1) = NT.cumedgelen{nedge+1}(end);
+%             NT.edgelens(ectarget) = NT.cumedgelen{ectarget}(end);
+%         end
+% 
+%      end
      
      function outputPDB(NT,outfile,scl)
         %% output network as pdb formatted file
