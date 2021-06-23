@@ -7,6 +7,14 @@ function [newnodepos,newedgenodes,mapold2new,mapnew2oldedge] = truncateNetworkNo
 
 % mapnew2oldedge(i) = for a given new edge index, gives the corresponding
 % old edge index
+if (isempty(keepind))
+    newnodepos = [];
+    newedgenodes = [];
+    mapold2new = NaN*ones(size(nodepos,1),1);
+    mapnew2oldedge = [];
+    return
+end
+
 %%
 mapold2new = NaN*ones(size(nodepos,1),1);
 for ic = 1:length(keepind)

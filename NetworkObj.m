@@ -165,6 +165,7 @@ methods
             NT.interpolateEdgePaths(2);
         end
             
+        NT.nodelabels = cell(NT.nnode,1);
     end
     
     function removeDoubleEdges(NT)
