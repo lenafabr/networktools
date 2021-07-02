@@ -129,6 +129,7 @@ methods
         
         
          % set edgeedge connections
+        NT.edgeedges = zeros(NT.nedge,2,max(NT.degrees)*2);
         for ec = 1:NT.nedge
             n1 = NT.edgenodes(ec,1); n2 = NT.edgenodes(ec,2);
             % edgeedge array gives, for a given edge: 
