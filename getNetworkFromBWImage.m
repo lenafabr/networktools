@@ -21,7 +21,10 @@ opt.keepconncomp = true;
 opt.maxedgestep = 5; 
 
 % trim any terminal edges shorter than this (in pixels)
-opt.mintermlen = 3; 
+opt.mintermlen = 3;
+
+% how close a node has to be to break a contour
+opt.closenode = 2;
 
 % copy input parameters
 if (exist('options','var'))
@@ -142,7 +145,7 @@ for nc = 1:size(nodegroup,1)
             %%
             dists = sqrt(sum((contour(cc,:) - fliplr(nodegroup)).^2,2));
             dists(nc) = inf;
-            closenodes = find(dists<2);
+            closenodes = find(dists<opt.closenode);
             if (~isempty(closenodes))
                 % break contour
                 nearestnode = closenodes(1);
@@ -183,6 +186,7 @@ if (opt.dodisplay>1)
         plot(edge(:,1),edge(:,2),'.-','MarkerSize',10,'Color',cmap(ec,:))
         nodes = edgenodes(ec,:);
         plot(nodegroup(nodes,1),nodegroup(nodes,2),'r.','MarkerSize',20)
+        text(edge(1,1),edge(1,2),sprintf('%d',ec),'Color',cmap(ec,:))
     end
     hold off
     drawnow

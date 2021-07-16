@@ -1,9 +1,13 @@
-function [NTnew,whichremoved]=decimateNodes(NT,nrm)
+function [NTnew,whichremoved]=decimateNodes(NT,nrm,keepnodes)
 % starting from a network object
 % attempt to remove a certain number of nodes, while maintaining a single
 % connected component
 % returns new network object and list of original edge indices that were
 % removed
+
+if (~exist('keepnodes','var'))
+    keepnodes = [];
+end
 
 %% convert network object to matlab graph object
 
@@ -29,20 +33,31 @@ nnode = size(G.Nodes,1);
 % what original index corresponds to each index in the new graph
 mapnew2orig = 1:nnode;
 nremoved = 0;
+
+canremove = true(1,nnode);
+canremove(keepnodes)  = false;
+
 for rc = 1:nrm
    % [rc nrm]
     nodeorder = randperm(nnode); % order in which to try removing    
+    success = false;
     for tc = 1:nnode % try every possible node
         % decide which node to remove
         erm = nodeorder(tc);
+        if (~canremove(mapnew2orig(erm)))
+            continue
+        end
         %[rc erm]
         Gtry = G.rmnode(erm);
         [~,binsizes] = conncomp(Gtry);
         ncomp = length(binsizes); % number of connected components
-        if (ncomp==1); break; end
+        if (ncomp==1)
+            success = true;
+            break
+        end
     end
-    if (ncomp>1)
-        fprintf('Failed to disconnect edge %d.\n',rc)
+    if (~success)
+        fprintf('Failed to disconnect node %d.\n',rc)
         break
     else
         G = Gtry;

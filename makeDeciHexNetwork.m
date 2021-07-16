@@ -14,6 +14,7 @@ function [NT,NTnotrim,NT0] = makeDeciHexNetwork(N, celldiam, options)
     opt.rmnodefrac = 0.1;
     opt.rmedgefrac = 0.1;
     opt.dodisplay = 1 % plot at the end
+    opt.keepR = inf; % do not remove any nodes or edges outside this radius
     % ntrimterminal, trim this many times to remove terminal nodes
     % rmnodefrac, node removed fraction
     % rmedgefrac, edge removed fraction
@@ -35,16 +36,25 @@ function [NT,NTnotrim,NT0] = makeDeciHexNetwork(N, celldiam, options)
     diffs = NT.nodepos - cent;
     dists =sqrt(sum(diffs.^2,2));    
     keepind = find(dists<=celldiam/2);
-    NT.keepNodes(keepind);
+    NT.keepNodes(keepind);       
     
     NT0 = copy(NT);
     NT0.interpolateEdgePaths(2);    
     NT0.setCumEdgeLen(1:NT0.nedge,true)
     
+    if (isinf(opt.keepR))
+        keepnodes = []; % not forced to keep any nodes
+    else
+        % do not remove any nodes outside this radius
+        diffs = NT.nodepos - cent;
+        dists =sqrt(sum(diffs.^2,2));
+        keepnodes = dists > opt.keepR;
+    end
+    
     %remove random nodes
     if (opt.rmnodefrac>0)
         noderm = round(opt.rmnodefrac*NT.nnode);
-        [NT,whichnoderemoved]=decimateNodes(NT,noderm);
+        [NT,whichnoderemoved]=decimateNodes(NT,noderm,keepnodes);
     end
     
     %decimate network edges

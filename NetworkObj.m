@@ -494,7 +494,8 @@ methods
             A(nodes(2),nodes(1)) = 1;
         end
         
-        G = graph(A);                
+        % specify edges and weights (edge lengths)
+        G = graph(NT.edgenodes(:,1),NT.edgenodes(:,2),NT.edgelens);      
     end
     
      function interpolateEdgePaths(NT,npt,whichedges)
@@ -708,7 +709,7 @@ methods
          opt.plotedges = 1;
          opt.edgeplotopt = {'LineWidth',.5};
          % plot curved paths instead of straight edges
-         opt.plotedgepath = 0;
+         opt.plotedgepath = 1;
          
          if (exist('options','var'))
              opt =copyStruct(options,opt,1);
@@ -734,7 +735,7 @@ methods
          
          if (opt.plotedges)
              for ec = 1:length(edgenodes)
-                 if (opt.plotedgepath)
+                 if (~isempty(NT.edgepath) & opt.plotedgepath)
                      % plot curved paths of the edges
                      path = NT.edgepath{ec};
                      if (dim==2)
