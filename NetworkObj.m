@@ -548,8 +548,15 @@ methods
 
             % using old edgepath set new edgepaths as two pieces of original
             epath = NT.edgepath{ectarget};
+
             NT.edgepath{nedge+1} = flip([newpos; epath(ind+1:end,:)]);
-            NT.edgepath{ectarget}= [epath(1:ind,:); newpos];
+
+            % in case newpos = a point along edgepath
+            if (epath(ind,:)==newpos)
+                NT.edgepath{ectarget}= epath(1:ind,:);
+            else
+                NT.edgepath{ectarget}= [epath(1:ind,:); newpos];
+            end
 
             % set cumulative edge length
             NT.setCumEdgeLen();
