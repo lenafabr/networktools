@@ -245,7 +245,7 @@ methods
         NT.setupNetwork()                
                 
         if (~isempty(NT.nodevals)); NT.nodevals = NT.nodevals(keepind); end
-        if (~isempty(NT.edgevals)); NT.edgevals = NT.edgevals(mapnew2oldedge); end
+        if (~isempty(NT.edgevals)); NT.edgevals = NT.edgevals(mapnew2oldedge,:); end
         if (~isempty(NT.edgepath)); NT.edgepath = NT.edgepath(mapnew2oldedge); end
         if (~isempty(NT.edgelens)); NT.edgelens = NT.edgelens(mapnew2oldedge); end
         if (~isempty(NT.cumedgelen)); NT.cumedgelen = NT.cumedgelen(mapnew2oldedge); end
