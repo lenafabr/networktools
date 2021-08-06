@@ -59,7 +59,6 @@ methods
         % load a network from file
         [nodepos,edgenodes,edgevals,nodelabels] = loadnetworkstruct(fname);
         
-        edgevals;
         
         if (opt.dim>0)
             NT.nodepos = nodepos(:,1:opt.dim);
