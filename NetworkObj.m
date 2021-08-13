@@ -19,6 +19,10 @@ properties
     nodelabels % string label for each node (permeability or reservoir)
     nodevals
     edgevals
+    % used for gui only
+    activeNodes
+    activeEdges
+    
     loops
     Name
     
@@ -704,7 +708,7 @@ methods
         fclose(of);
      end
      
-     function plotNetwork(NT,options)
+     function [nodeplotH,edgeplotH] = plotNetwork(NT,options)
          
          opt.labels = 0;
          opt.nodeplotopt = {'filled'};
@@ -716,6 +720,8 @@ methods
          opt.edgeplotopt = {'LineWidth',.5};
          % plot curved paths instead of straight edges
          opt.plotedgepath = 1;
+         % show data tips as edge or node index
+         opt.datatipindex = false;
          
          if (exist('options','var'))
              opt =copyStruct(options,opt,1);
@@ -739,22 +745,36 @@ methods
          %     opt.nodecolor = repmat(opt.nodecolor,size(nodepos,1),1);
          % end
          
+         dttemplateset = false;
          if (opt.plotedges)
              for ec = 1:length(edgenodes)
                  if (~isempty(NT.edgepath) & opt.plotedgepath)
                      % plot curved paths of the edges
                      path = NT.edgepath{ec};
                      if (dim==2)
-                         plot(path(:,1),path(:,2),'Color',opt.edgecolor(ec,:),opt.edgeplotopt{:})
+                         edgeplotH(ec) = plot(path(:,1),path(:,2),'Color',opt.edgecolor(ec,:),opt.edgeplotopt{:});
                      else
-                         plot3(path(:,1),path(:,2),path(:,3),'k.-',opt.edgeplotopt{:})
+                         edgeplotH(ec) = plot3(path(:,1),path(:,2),path(:,3),'k.-',opt.edgeplotopt{:});
+                     end
+                     
+                     % label the edge graphics object with the
+                     % corresponding index
+                     if (~isempty(NT.edgepath) & opt.plotedgepath & opt.datatipindex)
+                         edgeplotH(ec).addprop('edgeind');
+                         edgeplotH(ec).edgeind = ec;                         
+                         dttemplate = edgeplotH(ec).DataTipTemplate;
+                         dttemplate.FontSize=6;
+                         dttemplate.DataTipRows(1).Value = ec*ones(length(edgeplotH(ec).XData),1);
+                         dttemplate.DataTipRows(1).Label = '';
+                         dttemplate.DataTipRows(2:end) = [];
+                         dttemplateset = true;                         
                      end
                  else
                      p1 = edgenodes(ec,1); p2 = edgenodes(ec,2);
                      if (dim==2)
-                         plot(nodepos([p1,p2],1),nodepos([p1,p2],2),'Color',opt.edgecolor(ec,:),opt.edgeplotopt{:})
+                         plot(nodepos([p1,p2],1),nodepos([p1,p2],2),'Color',opt.edgecolor(ec,:),opt.edgeplotopt{:});
                      else
-                         plot3(nodepos([p1,p2],1),nodepos([p1,p2],2),nodepos([p1,p2],3),'k',opt.edgeplotopt{:})
+                         plot3(nodepos([p1,p2],1),nodepos([p1,p2],2),nodepos([p1,p2],3),'k',opt.edgeplotopt{:});
                      end
                  end
                  hold all
@@ -763,14 +783,24 @@ methods
          end
          if (~isempty(opt.plotnodes))
              if (dim==2)
-                 scatter(nodepos(opt.plotnodes,1),nodepos(opt.plotnodes,2),opt.nodesize(opt.plotnodes),opt.nodecolor(opt.plotnodes,:),opt.nodeplotopt{:})
+                 nodeplotH = scatter(nodepos(opt.plotnodes,1),nodepos(opt.plotnodes,2),opt.nodesize(opt.plotnodes),opt.nodecolor(opt.plotnodes,:),opt.nodeplotopt{:});
              else
-                 scatter3(nodepos(opt.plotnodes,1),nodepos(opt.plotnodes,2),nodepos(opt.plotnodes,3),...
-                     opt.nodesize(opt.plotnodes),opt.nodeplotopt{:})
+                 nodeplotH = scatter3(nodepos(opt.plotnodes,1),nodepos(opt.plotnodes,2),nodepos(opt.plotnodes,3),...
+                     opt.nodesize(opt.plotnodes),opt.nodeplotopt{:});
              end
              axis equal
              hold all
          end
+         
+         % set data tip properties
+         if (opt.datatipindex & ~isempty(opt.plotnodes))
+             dt = nodeplotH.DataTipTemplate;
+             dt.DataTipRows(1).Value = 1:NT.nnode;
+             dt.DataTipRows(1).Label = '';
+             dt.DataTipRows(2:end) = [];
+             dt.FontSize=6;
+         end
+         
          
          if (opt.labels)
              for pc = 1:length(nodepos)
