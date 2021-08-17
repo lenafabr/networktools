@@ -20,14 +20,13 @@ properties
     nodevals
     edgevals
     % used for gui only
-    activeNodes
-    activeEdges
     
     loops
     Name
     
     edgepath % coordinates of path along each edge
     cumedgelen % cumulative lengths along each edge
+    edgewidth;
 end
 
 methods
@@ -83,7 +82,7 @@ methods
         if opt.rmduplicate
             NT.removeDoubleEdges();
             NT.setupNetwork() % reset arrays
-        end
+        end    
     end
     
     function setupNetwork(NT,resetedgepath)
@@ -760,8 +759,9 @@ methods
                      % label the edge graphics object with the
                      % corresponding index
                      if (~isempty(NT.edgepath) & opt.plotedgepath & opt.datatipindex)
-                         edgeplotH(ec).addprop('edgeind');
-                         edgeplotH(ec).edgeind = ec;                         
+                         edgeplotH(ec).addprop('edgeind');                         
+                         edgeplotH(ec).edgeind = ec;
+                                                 
                          dttemplate = edgeplotH(ec).DataTipTemplate;
                          dttemplate.FontSize=6;
                          dttemplate.DataTipRows(1).Value = ec*ones(length(edgeplotH(ec).XData),1);

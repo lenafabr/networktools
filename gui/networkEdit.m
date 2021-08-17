@@ -1,35 +1,35 @@
-function varargout = LenaFig(varargin)
-% LENAFIG MATLAB code for LenaFig.fig
-%      LENAFIG, by itself, creates a new LENAFIG or raises the existing
+function varargout = networkEdit(varargin)
+% networkEdit MATLAB code for networkEdit.fig
+%      networkEdit, by itself, creates a new networkEdit or raises the existing
 %      singleton*.
 %
-%      H = LENAFIG returns the handle to a new LENAFIG or the handle to
+%      H = networkEdit returns the handle to a new networkEdit or the handle to
 %      the existing singleton*.
 %
-%      LENAFIG('CALLBACK',hObject,eventData,handles,...) calls the local
-%      function named CALLBACK in LENAFIG.M with the given input arguments.
+%      networkEdit('CALLBACK',hObject,eventData,handles,...) calls the local
+%      function named CALLBACK in networkEdit.M with the given input arguments.
 %
-%      LENAFIG('Property','Value',...) creates a new LENAFIG or raises the
+%      networkEdit('Property','Value',...) creates a new networkEdit or raises the
 %      existing singleton*.  Starting from the left, property value pairs are
-%      applied to the GUI before LenaFig_OpeningFcn gets called.  An
+%      applied to the GUI before networkEdit_OpeningFcn gets called.  An
 %      unrecognized property name or invalid value makes property application
-%      stop.  All inputs are passed to LenaFig_OpeningFcn via varargin.
+%      stop.  All inputs are passed to networkEdit_OpeningFcn via varargin.
 %
 %      *See GUI Options on GUIDE's Tools menu.  Choose "GUI allows only one
 %      instance to run (singleton)".
 %
 % See also: GUIDE, GUIDATA, GUIHANDLES
 
-% Edit the above text to modify the response to help LenaFig
+% Edit the above text to modify the response to help networkEdit
 
-% Last Modified by GUIDE v2.5 12-Aug-2021 12:54:58
+% Last Modified by GUIDE v2.5 13-Aug-2021 14:18:22
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
 gui_State = struct('gui_Name',       mfilename, ...
                    'gui_Singleton',  gui_Singleton, ...
-                   'gui_OpeningFcn', @LenaFig_OpeningFcn, ...
-                   'gui_OutputFcn',  @LenaFig_OutputFcn, ...
+                   'gui_OpeningFcn', @networkEdit_OpeningFcn, ...
+                   'gui_OutputFcn',  @networkEdit_OutputFcn, ...
                    'gui_LayoutFcn',  [] , ...
                    'gui_Callback',   []);
 if nargin && ischar(varargin{1})
@@ -44,27 +44,31 @@ end
 % End initialization code - DO NOT EDIT
 
 
-% --- Executes just before LenaFig is made visible.
-function LenaFig_OpeningFcn(hObject, eventdata, handles, varargin)
+% --- Executes just before networkEdit is made visible.
+function networkEdit_OpeningFcn(hObject, eventdata, handles, varargin)
 % This function has no output args, see OutputFcn.
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-% varargin   command line arguments to LenaFig (see VARARGIN)
+% varargin   command line arguments to networkEdit (see VARARGIN)
 
-% Choose default command line output for LenaFig
+% Choose default command line output for networkEdit
 handles.output = hObject;
 
 % Update handles structure
 guidata(hObject, handles);
-cd /home/matlab//Lena/
+%cd /home/matlab//Lena/
+addpath('/home/matlab/Lena/networktools/');
+addpath('/home/matlab/Lena/networktools/gui/');
+addpath('/home/matlab/Lena/networktools/examples/');
+addpath('/home/matlab/Lena/');
 
-% UIWAIT makes LenaFig wait for user response (see UIRESUME)
+% UIWAIT makes networkEdit wait for user response (see UIRESUME)
 % uiwait(handles.mainFig);
 
 
 % --- Outputs from this function are returned to the command line.
-function varargout = LenaFig_OutputFcn(hObject, eventdata, handles) 
+function varargout = networkEdit_OutputFcn(hObject, eventdata, handles) 
 % varargout  cell array for returning output args (see VARARGOUT);
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -78,7 +82,8 @@ varargout{1} = handles.output;
 % Manage menu
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function menuLoad_Callback(hObject, eventdata, handles)
-global newf NTobj imgObj plotoptObj selNodes selEdges 
+    global newf NTobj imgObj plotoptObj selNodes selEdges 
+    
     close(figure(1))
     newf =[];
     NTobj = [];
@@ -87,12 +92,12 @@ global newf NTobj imgObj plotoptObj selNodes selEdges
     selNodes = [];
     selEdges = [];
 
-    load('./examples/exampleERnetwork')
+    load('/home/matlab/Lena/networktools/examples/exampleERnetwork.mat')
     
     NTobj = NT;
     imgObj = img;
     plotoptObj = plotopt;
-    
+    NTobj.edgewidth = cell(NT.nedge,1);
     dispNetWithImage();
 return
 
@@ -246,13 +251,12 @@ function pushbuttonSelArea_Callback(hObject, eventdata, handles)
     yp = roi.Position(:,2);
     xc = [xp' roi.Position(1,1)]';
     yc = [yp' roi.Position(1,2)]';
-    plot(xp,yp, 'm')
+    %plot(xp,yp, 'm')
     
     x = NTobj.nodepos(:,1);
     y = NTobj.nodepos(:,2);
     [in on] = inpolygon(x,y, xp,yp);
     delete(roi);
-    hold off
     
     ind = find(in);
     scatter = findobj(gca,'Type','scatter');
@@ -264,6 +268,7 @@ function pushbuttonSelArea_Callback(hObject, eventdata, handles)
     selNodes = unique(selNodes);
     
     %removeSelected();
+    hold off
 return
 
 function pushbuttonAddNode_Callback(hObject, eventdata, handles)
@@ -484,3 +489,73 @@ function redraw()
     
     dispNetWithImage();
 return
+
+function iSel = findNearestEdge(xy)
+    global NTobj
+
+    dMin = 1E20;
+    iSel =-1;
+    for i=1:NTobj.nedge
+        d = NTobj.edgepath{i} - xy;
+        d2 = d(:,1).^2 + d(:,2).^2;
+        m = min(d2);
+        if m<dMin
+            iSel = i;
+            dMin = m;
+        end
+    end
+return
+
+function pushbuttonEdgeWidths_Callback(hObject, eventdata, handles)
+    global newf NTobj selEdges edgeplotH
+              
+    figure(newf);
+    hold on
+    
+    h = drawline();
+    ep = h.Position;
+    X1 = ep(1,1); Y1 = ep(1,2); X2 = ep(2,1); Y2 = ep(2,2);
+    xy = [0.5*(X1+X2) 0.5*(Y1+Y2)];
+    iSel = findNearestEdge(xy);
+    
+    edge = NTobj.edgepath{iSel};   
+    for j=1:size(edge,1)-1
+        x1 = edge(j,1);
+        y1 = edge(j,2);
+        x2 = edge(j+1,1);
+        y2 = edge(j+1,2);
+        
+        p1 = polyfit([x1 x2], [y1 y2], 1);
+        p2 = polyfit([X1 X2], [Y1 Y2],1);
+        
+        if abs(x2-x1)<1E-10
+            xCros = x1;
+            yCros = Y1 + (xCros - X1)*(Y2 - Y1)/(X2 - X1);
+        else
+            if abs(y1-y2)<1E-10
+                yCros = y1;
+                xCros = X1 + (yCros - Y1)*(X2 - X1)/(Y2 - Y1);
+            else
+                xCros = fzero(@(x) polyval(p1-p2,x),3);
+                yCros = polyval(p1,xCros);
+            end
+        end
+        if (xCros-x1)*(xCros-x2)<=0 & (yCros-y1)*(yCros-y2)<=0
+            break;
+        end
+        
+        plot(xCros, yCros, 'r+', 'LineWidth', 2)
+    end
+    hold off
+    
+    w = norm([X2-X1, Y2-Y1]);
+    p = NTobj.edgepath{iSel};
+    cum = NTobj.cumedgelen{iSel};
+    d = cum(j) + norm([xCros yCros] - p(j,:));
+    if isempty(NTobj.edgewidth{iSel})
+        NTobj.edgewidth{iSel} = [w d];
+    else
+        NTobj.edgewidth{iSel} = [NTobj.edgewidth{iSel}' [w d]']';
+    end
+return
+
