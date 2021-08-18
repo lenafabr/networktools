@@ -51,17 +51,31 @@ function networkEdit_OpeningFcn(hObject, eventdata, handles, varargin)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 % varargin   command line arguments to networkEdit (see VARARGIN)
+    global newf NTobj imgObj plotoptObj selNodes selEdges 
 
 % Choose default command line output for networkEdit
 handles.output = hObject;
 
 % Update handles structure
 guidata(hObject, handles);
-%cd /home/matlab//Lena/
-addpath('/home/matlab/Lena/networktools/');
-addpath('/home/matlab/Lena/networktools/gui/');
-addpath('/home/matlab/Lena/networktools/examples/');
-addpath('/home/matlab/Lena/');
+
+% addpath('/home/matlab/Lena/networktools/');
+% addpath('/home/matlab/Lena/networktools/gui/');
+% addpath('/home/matlab/Lena/networktools/examples/');
+% addpath('/home/matlab/Lena/');
+
+if nargin==6
+    NTobj = varargin{1};
+    imgObj = varargin{2};
+    plotoptObj = varargin{3};
+    
+    newf =[];
+    selNodes = [];
+    selEdges = [];
+    NTobj.edgewidth = cell(NTobj.nedge,1);
+    
+    dispNetWithImage();
+end
 
 % UIWAIT makes networkEdit wait for user response (see UIRESUME)
 % uiwait(handles.mainFig);
