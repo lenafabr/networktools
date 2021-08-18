@@ -893,5 +893,22 @@ methods
          end
          
      end
+     
+     function fixEdgePathOrientation(NT)
+         % reorient all edge paths to correctly match up to edge directions
+         % also recalculates cumulative edge lengths
+         for ec = 1:NT.nedge
+             n1 = NT.edgenodes(ec,1);
+             d1 = norm(NT.edgepath{ec}(1,:)-NT.nodepos(n1,:));
+             d2 = norm(NT.edgepath{ec}(end,:)-NT.nodepos(n1,:));
+             
+             if (d1>d2)
+                 NT.edgepath{ec} = flipud(NT.edgepath{ec});
+             end
+         end
+         
+         NT.setCumEdgeLen()
+         
+     end
 end
 end
