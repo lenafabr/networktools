@@ -233,7 +233,7 @@ methods
         
     end
     
-    function [mapold2new] = keepNodes(NT,keepind)        
+    function [mapold2new,mapnew2oldedge] = keepNodes(NT,keepind)        
         % truncate network to only keep the node indices given by keepind
         % remove any edges not between nodes in the new network.
         % keep only largest connected component
@@ -248,6 +248,26 @@ methods
         NT.setupNetwork()                
                 
         if (~isempty(NT.nodevals)); NT.nodevals = NT.nodevals(keepind); end
+        if (~isempty(NT.edgevals)); NT.edgevals = NT.edgevals(mapnew2oldedge,:); end
+        if (~isempty(NT.edgepath)); NT.edgepath = NT.edgepath(mapnew2oldedge); end
+        if (~isempty(NT.edgelens)); NT.edgelens = NT.edgelens(mapnew2oldedge); end
+        if (~isempty(NT.cumedgelen)); NT.cumedgelen = NT.cumedgelen(mapnew2oldedge); end
+    end
+    
+    function [mapnew2oldedge] = keepEdges(NT,keepind)        
+        % keep only edges of a certain index        
+        
+        % mapping from new to old edge index
+        mapnew2oldedge = zeros(1,nnz(keepind));
+        ct = 0;
+        for ec = keepind
+            ct = ct+1;
+            mapnew2oldedge(ct) = ec;
+        end
+        
+        NT.edgenodes = NT.edgenodes(keepind,:);        
+        NT.setupNetwork()                
+                        
         if (~isempty(NT.edgevals)); NT.edgevals = NT.edgevals(mapnew2oldedge,:); end
         if (~isempty(NT.edgepath)); NT.edgepath = NT.edgepath(mapnew2oldedge); end
         if (~isempty(NT.edgelens)); NT.edgelens = NT.edgelens(mapnew2oldedge); end
@@ -721,11 +741,13 @@ methods
          opt.plotedgepath = 1;
          % show data tips as edge or node index
          opt.datatipindex = false;
+         % scaling factor
+         opt.scl = 1;
          
          if (exist('options','var'))
              opt =copyStruct(options,opt,1);
          end
-         
+                           
          if (length(opt.nodesize)==1)
              opt.nodesize = opt.nodesize*ones(NT.nnode,1);
          end
@@ -739,6 +761,7 @@ methods
          dim = NT.dim;
          nodepos = NT.nodepos; 
          edgenodes = NT.edgenodes;
+         scl = opt.scl;
          
          % if (size(opt.nodecolor,1)==1)
          %     opt.nodecolor = repmat(opt.nodecolor,size(nodepos,1),1);
@@ -751,9 +774,9 @@ methods
                      % plot curved paths of the edges
                      path = NT.edgepath{ec};
                      if (dim==2)
-                         edgeplotH(ec) = plot(path(:,1),path(:,2),'Color',opt.edgecolor(ec,:),opt.edgeplotopt{:});
+                         edgeplotH(ec) = plot(path(:,1)*scl,path(:,2)*scl,'Color',opt.edgecolor(ec,:),opt.edgeplotopt{:});
                      else
-                         edgeplotH(ec) = plot3(path(:,1),path(:,2),path(:,3),'k.-',opt.edgeplotopt{:});
+                         edgeplotH(ec) = plot3(path(:,1)*scl,path(:,2)*scl,path(:,3)*scl,'k.-',opt.edgeplotopt{:});
                      end
                      
                      % label the edge graphics object with the
@@ -764,7 +787,7 @@ methods
                                                  
                          dttemplate = edgeplotH(ec).DataTipTemplate;
                          dttemplate.FontSize=6;
-                         dttemplate.DataTipRows(1).Value = ec*ones(length(edgeplotH(ec).XData),1);
+                         dttemplate.DataTipRows(1).Value = ec*ones(size(NT.edgepath{ec},1),1);
                          dttemplate.DataTipRows(1).Label = '';
                          dttemplate.DataTipRows(2:end) = [];
                          dttemplateset = true;                         
@@ -772,9 +795,9 @@ methods
                  else
                      p1 = edgenodes(ec,1); p2 = edgenodes(ec,2);
                      if (dim==2)
-                         plot(nodepos([p1,p2],1),nodepos([p1,p2],2),'Color',opt.edgecolor(ec,:),opt.edgeplotopt{:});
+                         plot(nodepos([p1,p2],1)*scl,nodepos([p1,p2],2)*scl,'Color',opt.edgecolor(ec,:),opt.edgeplotopt{:});
                      else
-                         plot3(nodepos([p1,p2],1),nodepos([p1,p2],2),nodepos([p1,p2],3),'k',opt.edgeplotopt{:});
+                         plot3(nodepos([p1,p2],1)*scl,nodepos([p1,p2],2)*scl,nodepos([p1,p2],3)*scl,'k',opt.edgeplotopt{:});
                      end
                  end
                  hold all
@@ -783,9 +806,9 @@ methods
          end
          if (~isempty(opt.plotnodes))
              if (dim==2)
-                 nodeplotH = scatter(nodepos(opt.plotnodes,1),nodepos(opt.plotnodes,2),opt.nodesize(opt.plotnodes),opt.nodecolor(opt.plotnodes,:),opt.nodeplotopt{:});
+                 nodeplotH = scatter(nodepos(opt.plotnodes,1)*scl,nodepos(opt.plotnodes,2)*scl,opt.nodesize(opt.plotnodes),opt.nodecolor(opt.plotnodes,:),opt.nodeplotopt{:});
              else
-                 nodeplotH = scatter3(nodepos(opt.plotnodes,1),nodepos(opt.plotnodes,2),nodepos(opt.plotnodes,3),...
+                 nodeplotH = scatter3(nodepos(opt.plotnodes,1)*scl,nodepos(opt.plotnodes,2)*scl,nodepos(opt.plotnodes,3)*scl,...
                      opt.nodesize(opt.plotnodes),opt.nodeplotopt{:});
              end
              axis equal

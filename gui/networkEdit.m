@@ -51,7 +51,7 @@ function networkEdit_OpeningFcn(hObject, eventdata, handles, varargin)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 % varargin   command line arguments to networkEdit (see VARARGIN)
-    global newf NTobj imgObj plotoptObj selNodes selEdges 
+    global newf NTobj imgObj plotoptObj selNodes selEdges guilock
 
 % Choose default command line output for networkEdit
 handles.output = hObject;
@@ -64,18 +64,34 @@ guidata(hObject, handles);
 % addpath('/home/matlab/Lena/networktools/examples/');
 % addpath('/home/matlab/Lena/');
 
-if nargin==6
-    NTobj = varargin{1};
-    imgObj = varargin{2};
-    plotoptObj = varargin{3};
-    
-    newf =[];
-    selNodes = [];
-    selEdges = [];
+% global locking of gui to prevent multiple selections being made at once
+guilock = false;
+
+%% set defaults
+NTobj = [];
+imgObj = [];
+plotoptObj = struct();
+
+for index = 1:2:length(varargin)
+    switch(lower(varargin{index}))
+        case 'nt'
+            NTobj = varargin{index+1};
+        case 'img'
+            imgObj = varargin{index+1};
+        case('plotopt')
+            plotoptObj = varargin{index+1};
+    end        
+end
+
+
+newf =[];
+selNodes = [];
+selEdges = [];
+if (~isempty(NTobj))
     NTobj.edgewidth = cell(NTobj.nedge,1);
-    
     dispNetWithImage();
 end
+
 
 % UIWAIT makes networkEdit wait for user response (see UIRESUME)
 % uiwait(handles.mainFig);
@@ -166,7 +182,9 @@ global newf NTobj imgObj plotoptObj nodeplotH edgeplotH imageH selNodes;
     end
     
     if (~imageexists) % redraw figure
-        imageH = imshow(imgObj,[0,0.9]);
+        if (~isempty(imgObj))
+            imageH = imshow(imgObj,[]);
+        end
         set(newf, 'Position', [20 20 500 500]);
         set(gca,'Position',[0,0,1,1])
     end
@@ -207,13 +225,21 @@ function ind = findNearestNode(nodepos, xy)
 return
 
 function ind = selectNode(addSelected, color)
-    global newf NTobj nodeplotH selNodes
+    global newf NTobj nodeplotH selNodes guilock
 
+    if (guilock)
+        disp('Cannot select nodes, gui is locked. Finish previous operation.')
+        ind = [];
+        return
+    end
+    
+    guilock = true;
     ind = [];
     nodeplotH.PickableParts = 'all';
 
     figure(newf)
     w = 0;
+    display('Use datatips to select desired nodes. Then hit any key.')
     while ~w
         w = waitforbuttonpress;
     end
@@ -237,6 +263,8 @@ function ind = selectNode(addSelected, color)
         delete(datatips)
     end
     nodeplotH.PickableParts = 'none';
+    
+    guilock = false;
 return
     
 function pushbuttonSelectNode_Callback(hObject, eventdata, handles)  
@@ -319,7 +347,14 @@ return
 % Manage edges
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function iSel = selectEdge(color)
-    global newf selEdges edgeplotH
+    global newf selEdges edgeplotH guilock
+    
+    if (guilock)
+        disp('Cannot select edges, gui is locked. Finish previous operation.')
+        iSel = []
+        return
+    end
+    guilock = true;
               
     iSel=[];
     for ie = 1:length(edgeplotH); 
@@ -328,6 +363,7 @@ function iSel = selectEdge(color)
    
     figure(newf)
     w = 0;
+    display('Select desired edges. Then press any key.')
     while ~w
         w = waitforbuttonpress;
     end
@@ -350,6 +386,8 @@ function iSel = selectEdge(color)
     for lc = 1:length(edgeplotH); 
         edgeplotH(lc).PickableParts = 'none'; 
     end
+    
+    guilock = false;
 return
 
 function pushbuttonSelectEdge_Callback(hObject, eventdata, handles)
@@ -416,36 +454,39 @@ function pushbuttonAddEdge_Callback(hObject, eventdata, handles)
 return
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function removeSelected_unfinished()
+function removeSelected()
 global NTobj newf selNodes selEdges
 
 if isempty(selNodes) & isempty(selEdges)
     return
 end
 
-dokeep = true(1,NTobj.nnode);
-dokeep(selNodes) = false;
+% remove nodes and adjacent edges to those nodes
+if (~isempty(selNodes))
+    dokeep = true(1,NTobj.nnode);
+    dokeep(selNodes) = false;
+    keepind = find(dokeep);
+    mapold2newedge = zeros(1,NTobj.nedge);
+    [~,mapnew2oldedge] = NTobj.keepNodes(keepind);
+    
+    % update index of selected edges
+    mapold2newedge(mapnew2oldedge) = 1:NTobj.nedge;
+    selEdges = mapold2newedge(selEdges);
+end
+
+% remove additional edges 
+dokeep = true(1,NTobj.nedge);
+dokeep(selEdges) = false;
 keepind = find(dokeep);
-keepNodes(NTobj,keepind);
+NTobj.keepEdges(keepind);
 
-
-selNodes=[];
-
-%     if ~isempty(selEdges)
-%         NTobj.edgepath(selEdges) =[];
-%         NTobj.cumedgelen(selEdges) =[];
-%         NTobj.edgelens(selEdges) =[];
-%         NTobj.edgeedges(selEdges,:,:) =[];
-%         NTobj.edgenodes(selEdges,:) =[];
-%
-%         NTobj.nedge = NTobj.nedge - length(selEdges);
-%         selEdges = [];
-%     end
+selNodes = [];
+selEdges = [];
 
 redraw();
 return
 
-function removeSelected()
+function removeSelected_old()
     global NTobj newf selNodes selEdges
     
     if isempty(selNodes) & isempty(selEdges)
