@@ -22,7 +22,7 @@ function varargout = networkEdit(varargin)
 
 % Edit the above text to modify the response to help networkEdit
 
-% Last Modified by GUIDE v2.5 13-Aug-2021 14:18:22
+% Last Modified by GUIDE v2.5 19-Aug-2021 10:10:25
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -96,7 +96,7 @@ varargout{1} = handles.output;
 % Manage menu
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function menuLoad_Callback(hObject, eventdata, handles)
-    global newf NTobj imgObj plotoptObj selNodes selEdges 
+    global newf NTobj imgObj plotoptObj selNodes selEdges fileName
     
     close(figure(1))
     newf =[];
@@ -105,14 +105,42 @@ function menuLoad_Callback(hObject, eventdata, handles)
     plotoptObj = [];
     selNodes = [];
     selEdges = [];
+    
+    [file,path] = uigetfile('*.mat');
+    fileName = [path file];
+    load(fileName);
 
-    load('/home/matlab/Lena/networktools/examples/exampleERnetwork.mat')
+%     load('/home/matlab/Lena/networktools/examples/exampleERnetwork.mat')
     
     NTobj = NT;
     imgObj = img;
     plotoptObj = plotopt;
     NTobj.edgewidth = cell(NT.nedge,1);
     dispNetWithImage();
+return
+
+function menuSave_Callback(hObject, eventdata, handles)
+    global NTobj imgObj plotoptObj fileName
+    
+    NT = NTobj;
+    img = imgObj;
+    plotopt = plotoptObj;
+    newFile = [fileName(1:end-4) '_modified.mat'];
+    uisave({'NT','img','plotopt'}, newFile);
+return
+
+function menuClear_Callback(hObject, eventdata, handles)
+    global newf NTobj selNodes 
+    
+    close(figure(1))
+    newf =[];
+    NTobj = [];
+    selNodes = [];
+return
+
+function menuQuit_Callback(hObject, eventdata, handles)
+    close all
+    clear all
 return
 
 function dispNetWithImage()
@@ -147,7 +175,6 @@ global newf NTobj imgObj plotoptObj nodeplotH edgeplotH imageH selNodes;
     % plot network
     newf=figure(1);
     hold on   
-    %newf=figure(1);
     plotoptObj.datatipindex = true;
     [nodeplotH,edgeplotH] = NTobj.plotNetwork(plotoptObj);
     hold off
@@ -164,24 +191,9 @@ global newf NTobj imgObj plotoptObj nodeplotH edgeplotH imageH selNodes;
     nodeplotH.PickableParts = 'none';
     for lc = 1:length(edgeplotH); edgeplotH(lc).PickableParts = 'none'; end
     
-%     % set data tip properties   
-%     dt = nodeplotH.DataTipTemplate;
-%     dt.DataTipRows(1).Value = 1:NTobj.nnode;
-%     dt.DataTipRows(1).Label = '';
-%     dt.DataTipRows(2:end) = [];
-%     dt.FontSize=6;     
     if (~imageexists)
         set(gca,'Position',[0,0,1,1])
     end
-return
-
-function menuClear_Callback(hObject, eventdata, handles)
-    global newf NTobj selNodes 
-    
-    close(figure(1))
-    newf =[];
-    NTobj = [];
-    selNodes = [];
 return
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -572,4 +584,5 @@ function pushbuttonEdgeWidths_Callback(hObject, eventdata, handles)
         NTobj.edgewidth{iSel} = [NTobj.edgewidth{iSel}' [w d]']';
     end
 return
+
 
