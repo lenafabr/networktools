@@ -417,11 +417,24 @@ function pushbuttonUnselectAllEdges_Callback(hObject, eventdata, handles)
 return
 
 function pushbuttonAddEdge_Callback(hObject, eventdata, handles)
-    global newf NTobj edgeplotH
+    global newf NTobj edgeplotH guilock
+    
+    if (guilock)
+        disp('Cannot draw new edge, gui is locked. Finish previous operation')
+        return
+    end
+    guilock = true;
     
     figure(newf);
     
     roi = drawpolyline;
+    
+    w = 0;
+    display('Draw new edge path. When done, do right mouse click. Then adjust path and hit any key to continue')
+    while ~w
+        w = waitforbuttonpress;
+    end
+    
     pnt = roi.Position;
     delete(roi);
     
@@ -451,6 +464,8 @@ function pushbuttonAddEdge_Callback(hObject, eventdata, handles)
     hold off
     edgeplotH(i).addprop('edgeind');
     edgeplotH(i).edgeind = i;
+    
+    guilock=false
 return
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
