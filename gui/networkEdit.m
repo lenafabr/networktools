@@ -591,6 +591,9 @@ return
 function pushbuttonEdgeWidths_Callback(hObject, eventdata, handles)
     global newf NTobj selEdges edgeplotH
               
+    warning('Width measurement has not been tested, is probably buggy, and should not be used.')
+    return
+    
     figure(newf);
     hold on
     
