@@ -160,7 +160,7 @@ function menuQuit_Callback(hObject, eventdata, handles)
 return
 
 function dispNetWithImage()
-global newf NTobj imgObj plotoptObj nodeplotH edgeplotH imageH selNodes;
+global newf NTobj imgObj plotoptObj nodeplotH edgeplotH imageH B selNodes;
     try
         %close(newf);
         delete(nodeplotH)
@@ -212,7 +212,24 @@ global newf NTobj imgObj plotoptObj nodeplotH edgeplotH imageH selNodes;
     if (~imageexists)
         set(gca,'Position',[0,0,1,1])
     end
+    B = 1;
 return
+
+function sliderBrightness_Callback(hObject, eventdata, handles)
+% hObject    handle to sliderBrightness (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'Value') returns position of slider
+%        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
+    global imageH B
+    try
+        b = get(hObject,'Value');
+        imageH.CData = imageH.CData * b/B;
+        B = b;
+    end
+return
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Manage nodes
