@@ -22,7 +22,7 @@ function varargout = networkEdit(varargin)
 
 % Edit the above text to modify the response to help networkEdit
 
-% Last Modified by GUIDE v2.5 19-Aug-2021 10:10:25
+% Last Modified by GUIDE v2.5 22-Aug-2021 16:24:22
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -59,39 +59,45 @@ handles.output = hObject;
 % Update handles structure
 guidata(hObject, handles);
 
-% addpath('/home/matlab/Lena/networktools/');
-% addpath('/home/matlab/Lena/networktools/gui/');
-% addpath('/home/matlab/Lena/networktools/examples/');
-% addpath('/home/matlab/Lena/');
+addpath('/home/matlab/Lena/networktools/');
+addpath('/home/matlab/Lena/networktools/gui/');
+addpath('/home/matlab/Lena/networktools/examples/');
+addpath('/home/matlab/Lena/');
 
 % global locking of gui to prevent multiple selections being made at once
 guilock = false;
 
 %% set defaults
-NTobj = [];
-imgObj = [];
-plotoptObj = struct();
+    NTobj = [];
+    imgObj = [];
+    plotoptObj = struct();
 
-for index = 1:2:length(varargin)
-    switch(lower(varargin{index}))
-        case 'nt'
-            NTobj = varargin{index+1};
-        case 'img'
-            imgObj = varargin{index+1};
-        case('plotopt')
-            plotoptObj = varargin{index+1};
-    end        
-end
+    for index = 1:2:length(varargin)
+        switch(lower(varargin{index}))
+            case 'nt'
+                NTobj = varargin{index+1};
+            case 'img'
+                imgObj = varargin{index+1};
+            case('plotopt')
+                plotoptObj = varargin{index+1};
+        end        
+    end
 
 
-newf =[];
-selNodes = [];
-selEdges = [];
-if (~isempty(NTobj))
-    NTobj.edgewidth = cell(NTobj.nedge,1);
-    dispNetWithImage();
-end
+    newf =[];
+    selNodes = [];
+    selEdges = [];
+    if (~isempty(NTobj))
+        NTobj.edgewidth = cell(NTobj.nedge,1);
+        dispNetWithImage();
+    end
 
+    hSlider1 = findobj('Tag', 'sliderContrast');
+    hSlider1.Min = 0.5;
+    hSlider1.Max = 1.5;
+    hSlider2 = findobj('Tag', 'sliderBrightness');
+    hSlider2.Min = -0.5;
+    hSlider2.Max = 0.5;
 
 % UIWAIT makes networkEdit wait for user response (see UIRESUME)
 % uiwait(handles.mainFig);
@@ -112,7 +118,7 @@ varargout{1} = handles.output;
 % Manage menu
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function menuLoad_Callback(hObject, eventdata, handles)
-    global newf NTobj imgObj plotoptObj selNodes selEdges fileName
+    global newf NTobj imgObj plotoptObj imgCData0 selNodes selEdges fileName
     
     close(figure(1))
     newf =[];
@@ -122,7 +128,7 @@ function menuLoad_Callback(hObject, eventdata, handles)
     selNodes = [];
     selEdges = [];
     
-    [file,path] = uigetfile('*.mat');
+    [file,path] = uigetfile('../*.mat');
     fileName = [path file];
     load(fileName);
 
@@ -132,6 +138,11 @@ function menuLoad_Callback(hObject, eventdata, handles)
     imgObj = img;
     plotoptObj = plotopt;
     NTobj.edgewidth = cell(NT.nedge,1);
+        
+    figure(1);       
+    imageH = imshow(imgObj,[]);
+    imgCData0 = imageH.CData;
+
     dispNetWithImage();
 return
 
@@ -146,12 +157,20 @@ function menuSave_Callback(hObject, eventdata, handles)
 return
 
 function menuClear_Callback(hObject, eventdata, handles)
-    global newf NTobj selNodes 
+    global newf NTobj A B selNodes 
     
     close(figure(1))
     newf =[];
     NTobj = [];
     selNodes = [];
+    
+    A = 1;
+    B = 0;
+    hSlider1 = findobj('Tag', 'sliderContrast');
+    hSlider1.Value = 1;
+    hSlider2 = findobj('Tag', 'sliderBrightness');
+    hSlider2.Value = 0;
+
 return
 
 function menuQuit_Callback(hObject, eventdata, handles)
@@ -160,7 +179,7 @@ function menuQuit_Callback(hObject, eventdata, handles)
 return
 
 function dispNetWithImage()
-global newf NTobj imgObj plotoptObj nodeplotH edgeplotH imageH B selNodes;
+global newf NTobj imgObj plotoptObj nodeplotH edgeplotH imageH A B selNodes;
     try
         %close(newf);
         delete(nodeplotH)
@@ -212,24 +231,56 @@ global newf NTobj imgObj plotoptObj nodeplotH edgeplotH imageH B selNodes;
     if (~imageexists)
         set(gca,'Position',[0,0,1,1])
     end
-    B = 1;
+    A = 1;
+    B = 0;
+return
+
+function sliderContrast_Callback(hObject, eventdata, handles)
+% hObject    handle to sliderContrast (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'Value') returns position of slider
+%        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
+    global imageH A B
+    try
+        a = get(hObject,'Value');
+        imageH.CData = (imageH.CData - B) * a/A + B;
+        A = a;
+        
+        imageH.CData(imageH.CData>1) = 1;
+        imageH.CData(imageH.CData<0) = 0;
+    end
 return
 
 function sliderBrightness_Callback(hObject, eventdata, handles)
 % hObject    handle to sliderBrightness (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
 % Hints: get(hObject,'Value') returns position of slider
 %        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
     global imageH B
     try
         b = get(hObject,'Value');
-        imageH.CData = imageH.CData * b/B;
+        imageH.CData = imageH.CData + b-B;
         B = b;
+
+        imageH.CData(imageH.CData>1) = 1;
+        imageH.CData(imageH.CData<0) = 0;
     end
 return
 
+function pushbuttonImgReset_Callback(hObject, eventdata, handles)
+    global imageH A B imgCData0
+
+    imageH.CData = imgCData0;
+    A = 1;
+    B = 0;
+    hSlider1 = findobj('Tag', 'sliderContrast');
+    hSlider1.Value = 1;
+    hSlider2 = findobj('Tag', 'sliderBrightness');
+    hSlider2.Value = 0;    
+return
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Manage nodes
@@ -660,5 +711,3 @@ function pushbuttonEdgeWidths_Callback(hObject, eventdata, handles)
         NTobj.edgewidth{iSel} = [NTobj.edgewidth{iSel}' [w d]']';
     end
 return
-
-
