@@ -22,7 +22,7 @@ function varargout = networkEdit(varargin)
 
 % Edit the above text to modify the response to help networkEdit
 
-% Last Modified by GUIDE v2.5 19-Aug-2021 10:10:25
+% Last Modified by GUIDE v2.5 21-Aug-2021 21:08:34
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -183,10 +183,13 @@ global newf NTobj imgObj plotoptObj nodeplotH edgeplotH imageH B selNodes;
     
     if (~imageexists) % redraw figure
         if (~isempty(imgObj))
-            imageH = imshow(imgObj,[]);
+            % rescale image to be between 0 1 
+            imgObj = double(imgObj)/max(double(imgObj(:))); 
+            imageH = imshow(imgObj,[0 1]);
         end
         set(newf, 'Position', [20 20 500 500]);
         set(gca,'Position',[0,0,1,1])
+        B = 1;
     end
     hold all
 
@@ -212,7 +215,7 @@ global newf NTobj imgObj plotoptObj nodeplotH edgeplotH imageH B selNodes;
     if (~imageexists)
         set(gca,'Position',[0,0,1,1])
     end
-    B = 1;
+    
 return
 
 function sliderBrightness_Callback(hObject, eventdata, handles)
@@ -222,11 +225,10 @@ function sliderBrightness_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'Value') returns position of slider
 %        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
-    global imageH B
+    global imageH B imgObj
     try
         b = get(hObject,'Value');
-        imageH.CData = imageH.CData * b/B;
-        B = b;
+        imageH.CData = imgObj * b;        
     end
 return
 
@@ -660,5 +662,3 @@ function pushbuttonEdgeWidths_Callback(hObject, eventdata, handles)
         NTobj.edgewidth{iSel} = [NTobj.edgewidth{iSel}' [w d]']';
     end
 return
-
-
