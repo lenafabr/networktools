@@ -59,11 +59,6 @@ handles.output = hObject;
 % Update handles structure
 guidata(hObject, handles);
 
-addpath('/home/matlab/Lena/networktools/');
-addpath('/home/matlab/Lena/networktools/gui/');
-addpath('/home/matlab/Lena/networktools/examples/');
-addpath('/home/matlab/Lena/');
-
 % global locking of gui to prevent multiple selections being made at once
 guilock = false;
 
@@ -93,8 +88,8 @@ guilock = false;
     end
 
     hSlider1 = findobj('Tag', 'sliderContrast');
-    hSlider1.Min = 0.5;
-    hSlider1.Max = 1.5;
+    hSlider1.Min = 0;
+    hSlider1.Max = 4;
     hSlider2 = findobj('Tag', 'sliderBrightness');
     hSlider2.Min = -0.5;
     hSlider2.Max = 0.5;
@@ -245,11 +240,16 @@ function sliderContrast_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'Value') returns position of slider
 %        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
-    global imageH A B
+    global imageH A B imgObj
     try
         a = get(hObject,'Value');
-        imageH.CData = (imageH.CData - B) * a/A + B;
-        A = a;
+        hSlider2 = findobj('Tag', 'sliderBrightness');
+        b = hSlider2.Value;
+        imageH.CData = imgObj * a + b;
+        
+        
+        %imageH.CData = (imageH.CData - B) * a/A + B;
+        %A = a;
         
         imageH.CData(imageH.CData>1) = 1;
         imageH.CData(imageH.CData<0) = 0;
@@ -264,9 +264,13 @@ function sliderBrightness_Callback(hObject, eventdata, handles)
 %        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
     global imageH B imgObj
     try
+        hSlider1 = findobj('Tag', 'sliderContrast');
+        a = hSlider1.Value;
         b = get(hObject,'Value');
-        imageH.CData = imageH.CData + b-B;
-        B = b;
+        imageH.CData = imgObj*a+b
+        
+       % imageH.CData = imageH.CData + b-B;
+       % B = b;
 
         imageH.CData(imageH.CData>1) = 1;
         imageH.CData(imageH.CData<0) = 0;
@@ -274,11 +278,11 @@ function sliderBrightness_Callback(hObject, eventdata, handles)
 return
 
 function pushbuttonImgReset_Callback(hObject, eventdata, handles)
-    global imageH A B imgCData0
+    global imageH A B imgObj
 
-    imageH.CData = imgCData0;
-    A = 1;
-    B = 0;
+    imageH.CData = imgObj;
+   % A = 1;
+   % B = 0;
     hSlider1 = findobj('Tag', 'sliderContrast');
     hSlider1.Value = 1;
     hSlider2 = findobj('Tag', 'sliderBrightness');
