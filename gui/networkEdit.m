@@ -202,10 +202,13 @@ global newf NTobj imgObj plotoptObj nodeplotH edgeplotH imageH A B selNodes;
     
     if (~imageexists) % redraw figure
         if (~isempty(imgObj))
-            imageH = imshow(imgObj,[]);
+            % rescale image to be between 0 1 
+            imgObj = double(imgObj)/max(double(imgObj(:))); 
+            imageH = imshow(imgObj,[0 1]);
         end
         set(newf, 'Position', [20 20 500 500]);
         set(gca,'Position',[0,0,1,1])
+        B = 1;
     end
     hold all
 
@@ -259,7 +262,7 @@ function sliderBrightness_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 % Hints: get(hObject,'Value') returns position of slider
 %        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
-    global imageH B
+    global imageH B imgObj
     try
         b = get(hObject,'Value');
         imageH.CData = imageH.CData + b-B;
