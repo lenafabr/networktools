@@ -393,7 +393,7 @@ function pushbuttonSelArea_Callback(hObject, eventdata, handles)
         scatter.CData(ind(i),:) = [0 0 1];
     end
 
-    selNodes = [selNodes' ind']';
+    selNodes = [selNodes ind']';
     selNodes = unique(selNodes);
     
     %removeSelected();
