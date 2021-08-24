@@ -393,7 +393,7 @@ function pushbuttonSelArea_Callback(hObject, eventdata, handles)
         scatter.CData(ind(i),:) = [0 0 1];
     end
 
-    selNodes = [selNodes ind']';
+    selNodes = [selNodes ind'];
     selNodes = unique(selNodes);
     
     %removeSelected();
@@ -513,6 +513,8 @@ function pushbuttonAddEdge_Callback(hObject, eventdata, handles)
     pnt = roi.Position;
     delete(roi);
     
+    guilock=false;
+    
     ind1 = findNearestNode(NTobj.nodepos, pnt(1,:));
     pnt(1,:) = NTobj.nodepos(ind1,:);
     ind2 = findNearestNode(NTobj.nodepos, pnt(end,:));        
@@ -527,10 +529,11 @@ function pushbuttonAddEdge_Callback(hObject, eventdata, handles)
     NTobj.edgepath{i} = [x y];
     NTobj.cumedgelen{i} =[];
     
-    %setCumEdgeLen(NTobj, i,true);
+    NTobj.setCumEdgeLen(i,true);
+    NTobj.edgevals{i} = [];
     
-    CLF = hypot(diff(x), diff(y));   % Calculate integrand from x,y derivatives
-    NTobj.edgelens(i) = trapz(CLF); % Integrate to calculate arc length
+   % CLF = hypot(diff(x), diff(y));   % Calculate integrand from x,y derivatives
+   % NTobj.edgelens(i) = trapz(CLF); % Integrate to calculate arc length
     
     NTobj.edgeedges(i,:,:) = NTobj.edgeedges(i-1,:,:);
     
@@ -539,8 +542,7 @@ function pushbuttonAddEdge_Callback(hObject, eventdata, handles)
     hold off
     edgeplotH(i).addprop('edgeind');
     edgeplotH(i).edgeind = i;
-    
-    guilock=false
+        
 return
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

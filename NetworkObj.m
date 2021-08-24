@@ -171,6 +171,7 @@ methods
         if (isempty(NT.nodelabels))
             NT.nodelabels = cell(NT.nnode,1);
         end
+               
     end
     
     function removeDoubleEdges(NT)
@@ -248,7 +249,8 @@ methods
         NT.setupNetwork()                
                 
         if (~isempty(NT.nodevals)); NT.nodevals = NT.nodevals(keepind); end
-        if (~isempty(NT.edgevals)); NT.edgevals = NT.edgevals(mapnew2oldedge,:); end
+        if (~isempty(NT.edgevals)); NT.edgevals = NT.edgevals(mapnew2oldedge); end
+        if (~isempty(NT.edgewidth)); NT.edgewidth = NT.edgewidth(mapnew2oldedge); end
         if (~isempty(NT.edgepath)); NT.edgepath = NT.edgepath(mapnew2oldedge); end
         if (~isempty(NT.edgelens)); NT.edgelens = NT.edgelens(mapnew2oldedge); end
         if (~isempty(NT.cumedgelen)); NT.cumedgelen = NT.cumedgelen(mapnew2oldedge); end
@@ -266,9 +268,10 @@ methods
         end
         
         NT.edgenodes = NT.edgenodes(keepind,:);        
-        NT.setupNetwork()                
-                        
-        if (~isempty(NT.edgevals)); NT.edgevals = NT.edgevals(mapnew2oldedge,:); end
+        NT.setupNetwork()      
+        
+        if (~isempty(NT.edgewidth)); NT.edgewidth = NT.edgewidth(mapnew2oldedge); end               
+        if (~isempty(NT.edgevals)); NT.edgevals = NT.edgevals(mapnew2oldedge); end
         if (~isempty(NT.edgepath)); NT.edgepath = NT.edgepath(mapnew2oldedge); end
         if (~isempty(NT.edgelens)); NT.edgelens = NT.edgelens(mapnew2oldedge); end
         if (~isempty(NT.cumedgelen)); NT.cumedgelen = NT.cumedgelen(mapnew2oldedge); end
@@ -493,14 +496,16 @@ methods
             pathlens = sqrt(sum(pathdiffs.^2,2));
             
             NT.cumedgelen{ec} = [0,cumsum(pathlens')];
+            
+            if (setedgelens)
+                % reset edge lens from cumulative               
+                NT.edgelens(ec) = NT.cumedgelen{ec}(end);                
+            end
         end
         
         if (setedgelens)
             % reset edge lens from cumulative
-            NT.edgelens = zeros(NT.nedge,1);
-            for ec = 1:NT.nedge
-                NT.edgelens(ec) = NT.cumedgelen{ec}(end);
-            end
+            NT.edgelens = NT.edgelens(1:NT.nedge);            
         end
     end
     

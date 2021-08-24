@@ -355,4 +355,8 @@ for ec = 1:NT.nedge
     NT.edgepath{ec}(end,:) = NT.nodepos(NT.edgenodes(ec,2),:);
 end
 
-NT.setCumEdgeLen(1:NT.nedge,1)
+NT.setCumEdgeLen(1:NT.nedge,1);
+
+%% empty edgewidths arrays for use later
+NT.edgewidth = cell(NT.nedge,1);
+
