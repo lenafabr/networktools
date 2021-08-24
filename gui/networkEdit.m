@@ -314,7 +314,7 @@ function ind = selectNode(addSelected, color)
 
     figure(newf)
     w = 0;
-    display('Use datatips to select desired nodes. Then hit any key.')
+    display('Use datatips to select desired nodes. Then hit any keyboard key (while the figure window is active).')
     while ~w
         w = waitforbuttonpress;
     end
@@ -438,7 +438,7 @@ function iSel = selectEdge(color)
    
     figure(newf)
     w = 0;
-    display('Select desired edges. Then press any key.')
+    display('Select desired edges. Then press any keyboard key (while the figure window is active)')
     while ~w
         w = waitforbuttonpress;
     end
