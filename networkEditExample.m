@@ -47,7 +47,8 @@ hold off
 % only necessary if you want the output edge widths to be in the right
 % order
 %% You must manually set the top node of the tree! 
-% (click on the plot you generated above and it will tell you the index of the desired node)
+% (Find the node you want in the plot generated in the previous section. 
+% Click on the node and it should tell you the index of the desired node)
 parentnode = 335;
 
 isset = false(NT.nedge,1);
