@@ -799,7 +799,7 @@ methods
                      end
                      
                      % turn off datatips for edge paths
-                     edgeplotH(ec).PickableParts = 'none';
+                     %edgeplotH(ec).PickableParts = 'none';
                  else
                      p1 = edgenodes(ec,1); p2 = edgenodes(ec,2);
                      if (dim==2)
