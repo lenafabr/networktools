@@ -13,6 +13,7 @@ addpath('./gui')
 
 % original image file, not segmented, will be used for visualization only
 origimgfile = './examples/example2_dendriticNetwork.tif';
+
 % single-frame image file for a black and white image (can be skeletonized
 % already, or merely segmented)
 bwimgfile = './examples/example2_dendriticNetworkSkeleton.tif';
@@ -35,7 +36,7 @@ plotopt.edgeplotopt = {'LineWidth',2,'Color','g'};
 % superimpose network on image
 % replace img with bwimg if you want to see how the network compares to the
 % segmented image it was calculated from
-imshow(img,[])
+imshow(bwimg,[])
 hold all
 NT.plotNetwork(plotopt)
 hold off
@@ -49,9 +50,6 @@ networkEdit('NT',NT,'img',img,'plotopt',plotopt)
 %% Now we will use a separate GUI to measure the edge widths and store the measurements
 % You can measure an arbitrary number of separate widths on each edge
 % [these two GUIs will be integrated into one eventually....]
-
-% set up edgewidths array where widths will be stored
-%% set dimensions of edgewidths
 
 % run the gui for width measurement
 % pink dots are locations of existing width measurements that are already

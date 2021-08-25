@@ -11,6 +11,9 @@ function [NT,saveedgewidth] = setNetWidths(NT,imgfilename)
 % Manual entry would store NT.edgewidth{edge}(diam1,diam2;0,0...) etc
 % l1 and l2 are calculated from t_a * NT.edgelens{edge}
 % where t_a is obtained from function distance2curve.m
+
+saveedgewidth = NT.edgewidth;
+
 %% plot img and network
 fig = figure;
 ax = axes(fig);
@@ -32,8 +35,12 @@ for ec = 1:NT.nedge
     if ~(isempty(NT.edgewidth{ec}))
         for wc = 1:size(NT.edgewidth{ec},1)
             % intersection point
-            pt = interp1(NT.cumedgelen{ec},NT.edgepath{ec},NT.edgewidth{ec}(wc,2));
-            plot(pt(1),pt(2),'m.', 'MarkerSize',20)
+            if (size(NT.edgewidth{ec},2)==1)
+                plot(NT.edgepath{ec}(:,1),NT.edgepath{ec}(:,2),'m','LineWidth',2)
+            else
+                pt = interp1(NT.cumedgelen{ec},NT.edgepath{ec},NT.edgewidth{ec}(wc,2));
+                plot(pt(1),pt(2),'m.', 'MarkerSize',20)           
+            end            
         end
     end
 end
@@ -138,13 +145,23 @@ if (measureTool)
         % Assign to those edges whose paths cross lines
         % check which point on edgepath is it closest to
         % shortlist edgepaths first from nodepos
+        if (isempty(saveLines(n).Position)) % do not include this line
+            continue
+        end
+        
         coord = (saveLines(n).Position(1,:) + saveLines(n).Position(2,:))/2;
         [~, node] = min(sum((NT.nodepos - coord).^2,2));
         %node
         % check which edges connect to this node
-        posEdges = 0;
-        posEdges = [find(NT.edgenodes(:,2) == node); find(NT.edgenodes(:,1) == node)];
+        %posEdges = 0;
+        %posEdges = [find(NT.edgenodes(:,2) == node); find(NT.edgenodes(:,1) == node)];
+         % check all paths
+        posEdges = (1:NT.nedge)';
+        
         checkpaths = NT.edgepath(posEdges);
+        
+       
+        
         allPathPts = vertcat(checkpaths{:});
         pathLens = cell2mat(cellfun(@length,checkpaths,'uni',false));
         % get index where nearest path pt is located
@@ -197,9 +214,16 @@ else
         [~, node] = min(sum((NT.nodepos - coord).^2,2));
         %node
         % check which edges connect to this node
-        posEdges = 0;
-        posEdges = [find(NT.edgenodes(:,2) == node); find(NT.edgenodes(:,1) == node)];
+        %posEdges = 0;
+        %posEdges = [find(NT.edgenodes(:,2) == node); find(NT.edgenodes(:,1) == node)];
+        % check all paths
+        posEdges = (1:NT.nedge)';
+        
+        
         checkpaths = NT.edgepath(posEdges);
+        
+        
+        
         allPathPts = vertcat(checkpaths{:});
         pathLens = cell2mat(cellfun(@length,checkpaths,'uni',false));
         % get index where nearest path pt is located
@@ -207,6 +231,7 @@ else
         edge = posEdges(find(cumsum(pathLens) >= pathind,1));
         
         % highlight which edge is detected ultimately
+        hold all
         sn = plot(NT.edgepath{edge}(:,1),NT.edgepath{edge}(:,2),'color','r','Linewidth',2);
         prompt = {'Diameter1 after branching from mother'; 'Diameter2 before branching to daughter branches'};
         % diameter 1 : diameter after branching from mother,
@@ -225,6 +250,7 @@ else
         userInp = inputdlg(prompt,dlgtitle,dims,definput);
         edgewidth = cellfun(@str2num,userInp);
         delete(sn)
+        
         plot(NT.edgepath{edge}(:,1),NT.edgepath{edge}(:,2),'color','b','Linewidth',2)
         % reset pre-existing edgeval
         NT.edgewidth{edge}(1,1) = edgewidth(1);

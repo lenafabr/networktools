@@ -531,6 +531,7 @@ function pushbuttonAddEdge_Callback(hObject, eventdata, handles)
     
     NTobj.setCumEdgeLen(i,true);
     NTobj.edgevals{i} = [];
+    NTobj.edgewidth{i} = [];
     
    % CLF = hypot(diff(x), diff(y));   % Calculate integrand from x,y derivatives
    % NTobj.edgelens(i) = trapz(CLF); % Integrate to calculate arc length
