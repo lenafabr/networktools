@@ -27,6 +27,7 @@ bwimg = imread(bwimgfile);
 NT= getNetworkFromBWImage(bwimg);
 % make a backup copy of the network before you edit it
 NT0 = copy(NT);
+
 %% visualize the network object to make sure it looks ok
 
 % plotting options (avoids drawing black lines on black background)
@@ -36,10 +37,23 @@ plotopt.edgeplotopt = {'LineWidth',2,'Color','g'};
 % superimpose network on image
 % replace img with bwimg if you want to see how the network compares to the
 % segmented image it was calculated from
-imshow(bwimg,[])
+imshow(img,[])
 hold all
 NT.plotNetwork(plotopt)
 hold off
+
+%% set up directed tree, reversing edges as needed
+% this sets the edge directions to all point downstream, 
+% only necessary if you want the output edge widths to be in the right
+% order
+%% You must manually set the top node of the tree! 
+% (click on the plot you generated above and it will tell you the index of the desired node)
+parentnode = 335;
+
+isset = false(NT.nedge,1);
+wasreversed = false(NT.nedge,1);
+[isset,wasreversed] = directedTreeEdges(NT,parentnode,isset,wasreversed);
+
 
 %% Use a graphical user interface (GUI) to edit the network (eg: remove or add nodes / edges)
 % when you are done editing (or as you go), the NT object will contain the
@@ -55,3 +69,20 @@ networkEdit('NT',NT,'img',img,'plotopt',plotopt)
 % pink dots are locations of existing width measurements that are already
 % saved in the object
 [NT,saveEdgeVals] = setNetWidths(NT,origimgfile);
+
+%% 
+
+%% output length and width results
+
+% pick a name for a file to write to
+outputfile = 'networkdata.txt';
+
+% write to file (and also print on screen)
+outputEdgeData(NT,outputfile)
+
+%% visualize the network object and click (data-tip) on any edge to see what is the edge ID
+
+imshow(img,[])
+hold all
+NT.plotNetwork(plotopt)
+hold off
