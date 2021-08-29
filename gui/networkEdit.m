@@ -22,7 +22,7 @@ function varargout = networkEdit(varargin)
 
 % Edit the above text to modify the response to help networkEdit
 
-% Last Modified by GUIDE v2.5 22-Aug-2021 16:24:22
+% Last Modified by GUIDE v2.5 25-Aug-2021 16:27:42
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -546,37 +546,126 @@ function pushbuttonAddEdge_Callback(hObject, eventdata, handles)
         
 return
 
+function pushbuttonMerge_Callback(hObject, eventdata, handles)
+    global newf NTobj nodeplotH guilock
+
+    if (guilock)
+        disp('Cannot select nodes, gui is locked. Finish previous operation.')
+        ind = [];
+        return
+    end
+    
+    ind = [];
+    nodeplotH.PickableParts = 'all';
+
+    figure(newf)
+    w = 0;
+    display('Use datatip to select a node between merging edges. Then hit any keyboard key (while the figure window is active).')
+    while ~w
+        w = waitforbuttonpress;
+    end
+    
+    figure(newf);
+    datatips = findobj(gca,'Type','datatip');
+    if isempty(datatips)
+        return;
+    end
+    
+    ind = [datatips.DataIndex];
+    delete(datatips)
+    iSel = ind(1);
+    nodeplotH.PickableParts = 'none';
+    
+    iEdge1 = NTobj.nodeedges(243,1);
+    iEdge2 = NTobj.nodeedges(243,2);
+    mEdges = [iEdge1 iEdge2];
+    
+%     % remove nodes and adjacent edges to those nodes
+%     dokeep = true(1,NTobj.nnode);
+%     dokeep(iSel) = false;
+%     keepind = find(dokeep);
+%         
+%     mapold2newedge = zeros(1,NTobj.nedge);
+%     [~,mapnew2oldedge] = NTobj.keepNodes(keepind);
+% 
+%     % update index of selected edges
+%      mapold2newedge(mapnew2oldedge) = 1:NTobj.nedge;
+%      mEdges = mapold2newedge(mEdges);
+%      
+%     % remove additional edges 
+%     dokeep = true(1,NTobj.nedge);
+%     dokeep(mEdges) = false;
+%     keepind = find(dokeep);
+%     NTobj.keepEdges(keepind);
+% 
+%     redraw();
+return
+
+% function pushbuttonMerge_Callback(hObject, eventdata, handles)
+%     global newf NTobj nodeplotH selNodes guilock
+% 
+%     iSel = [];
+%     nodeplotH.PickableParts = 'all';
+%     guilock = true;
+%             
+%     figure(newf)
+%     data = findobj(gca,'Type','datatip');
+%     delete(data)
+% 
+%     display('Use datatips to select a nodes between merging edges. Then hit any keyboard key (while the figure window is active).')
+%     while true
+%         w = 1; 
+%         found = false;
+%         while w || ~found
+%             w = waitforbuttonpress;
+%             datatips = findobj(gca,'Type','datatip');
+%             found = ~isempty(datatips);
+%         end
+%         if found
+%             break;
+%         end
+%     end
+%     figure(newf)
+%     iSel = datatips.DataIndex;
+% %     delete(datatips)
+% 
+%     nodeplotH.PickableParts = 'none';
+%     guilock = false;
+% 
+%     disp(iSel)
+% return
+% 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function removeSelected()
-global NTobj newf selNodes selEdges
+    global NTobj newf selNodes selEdges
 
-if isempty(selNodes) & isempty(selEdges)
-    return
-end
+    if isempty(selNodes) & isempty(selEdges)
+        return
+    end
 
-% remove nodes and adjacent edges to those nodes
-if (~isempty(selNodes))
-    dokeep = true(1,NTobj.nnode);
-    dokeep(selNodes) = false;
+    % remove nodes and adjacent edges to those nodes
+    if (~isempty(selNodes))
+        dokeep = true(1,NTobj.nnode);
+        dokeep(selNodes) = false;
+        keepind = find(dokeep);
+        mapold2newedge = zeros(1,NTobj.nedge);
+        [~,mapnew2oldedge] = NTobj.keepNodes(keepind);
+
+        % update index of selected edges
+        mapold2newedge(mapnew2oldedge) = 1:NTobj.nedge;
+        selEdges = mapold2newedge(selEdges);
+    end
+
+    % remove additional edges 
+    dokeep = true(1,NTobj.nedge);
+    dokeep(selEdges) = false;
     keepind = find(dokeep);
-    mapold2newedge = zeros(1,NTobj.nedge);
-    [~,mapnew2oldedge] = NTobj.keepNodes(keepind);
-    
-    % update index of selected edges
-    mapold2newedge(mapnew2oldedge) = 1:NTobj.nedge;
-    selEdges = mapold2newedge(selEdges);
-end
+    NTobj.keepEdges(keepind);
 
-% remove additional edges 
-dokeep = true(1,NTobj.nedge);
-dokeep(selEdges) = false;
-keepind = find(dokeep);
-NTobj.keepEdges(keepind);
+    selNodes = [];
+    selEdges = [];
 
-selNodes = [];
-selEdges = [];
-
-redraw();
+    redraw();
 return
 
 function removeSelected_old()
@@ -721,3 +810,4 @@ function pushbuttonEdgeWidths_Callback(hObject, eventdata, handles)
         NTobj.edgewidth{iSel} = [NTobj.edgewidth{iSel}' [w d]']';
     end
 return
+
