@@ -324,32 +324,37 @@ function ind = selectNode(addSelected, color)
     
     guilock = true;
     nodeplotH.PickableParts = 'all';
+    nodeplotH.HitTest = 'on';
     ind = [];
 
     figure(newf)
     w = 0;
     display('Use datatips to select desired nodes. Then hit any keyboard key (while the figure window is active).')
-    while ~w
-        w = waitforbuttonpress;
-    end
-    %input('On figure, select nodes for removal. Then press enter.')
-    
-    figure(newf);
-    datatips = findobj(gca,'Type','datatip');
-    
-    if ~isempty(datatips)
-        ind = [datatips.DataIndex];
-        scatter = findobj(gca,'Type','scatter');
-        for i=1:length(ind)
-            scatter.CData(ind(i),:) = color;
+    try
+        while ~w
+            w = waitforbuttonpress;
         end
+        %input('On figure, select nodes for removal. Then press enter.')
         
-        if addSelected
-            selNodes = [selNodes ind];
-            selNodes = unique(selNodes);
+        figure(newf);
+        datatips = findobj(gca,'Type','datatip');
+        
+        if ~isempty(datatips)
+            ind = [datatips.DataIndex];
+            scatter = findobj(gca,'Type','scatter');
+            for i=1:length(ind)
+                scatter.CData(ind(i),:) = color;
+            end
+            
+            if addSelected
+                selNodes = [selNodes ind];
+                selNodes = unique(selNodes);
+            end
+            
+            delete(datatips)
         end
-        
-        delete(datatips)
+    catch exception
+        disp(getReport(exception))
     end
     nodeplotH.PickableParts = 'none';    
     guilock = false;
@@ -428,7 +433,7 @@ function pushbuttonAddNode_Callback(hObject, eventdata, handles)
     NTobj.nodeedges(nnode,:) = [0 0 0 0];
         
     plotNet();
-%     dispNetWithImage();
+%   dispNetWithImage();
 return
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -446,7 +451,8 @@ function iSel = selectEdge(color)
               
     iSel=[];
     for ie = 1:length(edgeplotH); 
-        edgeplotH(ie).PickableParts = 'all'; 
+        edgeplotH(ie).PickableParts = 'all';
+        edgeplotH(ie).HitTest = 'on';
     end
    
     figure(newf)
@@ -833,7 +839,8 @@ function redraw()
     Lines = findobj(gca,'Type','line');
     delete(Lines);
     
-    dispNetWithImage();
+    plotNet();
+%     dispNetWithImage();
 return
 
 function iSel = findNearestEdge(xy)
