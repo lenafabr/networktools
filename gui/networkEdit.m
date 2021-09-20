@@ -22,7 +22,7 @@ function varargout = networkEdit(varargin)
 
 % Edit the above text to modify the response to help networkEdit
 
-% Last Modified by GUIDE v2.5 29-Aug-2021 17:04:26
+% Last Modified by GUIDE v2.5 20-Sep-2021 12:25:56
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -52,9 +52,10 @@ function networkEdit_OpeningFcn(hObject, eventdata, handles, varargin)
 % handles    structure with handles and user data (see GUIDATA)
 % varargin   command line arguments to networkEdit (see VARARGIN)
     global newf NTobj imgObj plotoptObj selNodes selEdges guilock
-
+    global selectFirst
 % Choose default command line output for networkEdit
 handles.output = hObject;
+selectFirst = true;
 
 % Update handles structure
 guidata(hObject, handles);
@@ -111,7 +112,7 @@ varargout{1} = handles.output;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Manage menu
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function menuLoad_Callback(hObject, eventdata, handles)
+function LoadData()
     global newf NTobj imgObj plotoptObj imgCData0 selNodes selEdges fileName
     
     close(figure(1))
@@ -122,12 +123,11 @@ function menuLoad_Callback(hObject, eventdata, handles)
     selNodes = [];
     selEdges = [];
     
-    [file,path] = uigetfile('../*.mat');
-    fileName = [path file];
+%     [file,path] = uigetfile('../*.mat');
+%     fileName = [path file];
+fileName = '/home/matlab/Lena/networktools/exampleERnetwork.mat';
     load(fileName);
 
-%     load('/home/matlab/Lena/networktools/examples/exampleERnetwork.mat')
-    
     NTobj = NT;
     imgObj = img;
     plotoptObj = plotopt;
@@ -138,6 +138,12 @@ function menuLoad_Callback(hObject, eventdata, handles)
     imgCData0 = imageH.CData;
 
     dispNetWithImage();
+    figure(newf);
+    
+return
+
+function menuLoad_Callback(hObject, eventdata, handles)
+    LoadData();
 return
 
 function menuSave_Callback(hObject, eventdata, handles)
@@ -196,7 +202,7 @@ global newf NTobj imgObj plotoptObj nodeplotH edgeplotH imageH selNodes;
             imgObj = double(imgObj)/max(double(imgObj(:))); 
             imageH = imshow(imgObj,[0 1]);
         end
-        set(newf, 'Position', [20 20 500 500]);
+        set(newf, 'Position', [40 40 500 500]);
         set(gca,'Position',[0,0,1,1])
     end
     hold all
@@ -313,30 +319,73 @@ function ind = findNearestNode(nodepos, xy)
     ind = find(d2 == M);       
 return
 
+function turn(obj1, obj2, on)
+    global guilock
+        
+    n = length(obj1);
+    if length(obj1) ~= n
+        return;
+    end
+    
+    guilock = on;
+    if on
+        for i=1:n
+            obj1(i).PickableParts = 'all';
+            obj2(i).PickableParts = 'all';
+            obj1(i).HitTest = 'on';
+            obj2(i).HitTest = 'on';
+        end
+    else
+        for i=1:n
+            obj1(i).PickableParts = 'none';
+            obj2(i).PickableParts = 'none';
+            obj1(i).HitTest = 'off';
+            obj2(i).HitTest = 'off';
+        end
+    end
+return
+
 function ind = selectNode(addSelected, color)
-    global newf NTobj nodeplotH selNodes guilock
+    global newf nodeplotH selNodes guilock
+    global selectFirst
 
     if (guilock)
         disp('Cannot select nodes, gui is locked. Finish previous operation.')
         ind = [];
         return
     end
-    
-    guilock = true;
-    nodeplotH.PickableParts = 'all';
-    nodeplotH.HitTest = 'on';
-    ind = [];
-
-    figure(newf)
-    w = 0;
     display('Use datatips to select desired nodes. Then hit any keyboard key (while the figure window is active).')
+    
+    figure(newf)
+
+    % Imitation of clicking Enter on the figure
+    if selectFirst
+        try            
+            P = get(gcf, 'Position');
+            SS = get(0,'screensize');
+            hroot=groot;
+            set(hroot,'PointerLocation',[P(1)+10, P(2)+10]); 
+            pause(1);
+            inputemu('key_normal','\ENTER');            
+        catch exception
+            disp(getReport(exception))
+            selectFirst = false;
+            return
+        end
+        selectFirst = false;
+    end
+    
+    scatter = findobj(gca,'Type','scatter');
+    turn(nodeplotH, scatter, true);
+
+    ind = [];
+    w = 0;
     try
+        figure(newf);        
         while ~w
             w = waitforbuttonpress;
         end
-        %input('On figure, select nodes for removal. Then press enter.')
         
-        figure(newf);
         datatips = findobj(gca,'Type','datatip');
         
         if ~isempty(datatips)
@@ -355,9 +404,9 @@ function ind = selectNode(addSelected, color)
         end
     catch exception
         disp(getReport(exception))
+        turn(nodeplotH, scatter, false);
     end
-    nodeplotH.PickableParts = 'none';    
-    guilock = false;
+    turn(nodeplotH, scatter, false);
 return
     
 function pushbuttonSelectNode_Callback(hObject, eventdata, handles)  
@@ -388,6 +437,7 @@ return
 
 function pushbuttonSelArea_Callback(hObject, eventdata, handles)
     global newf NTobj selNodes selEdges
+    
     selEdges = unique(selEdges);
     figure(newf);
     hold on
@@ -433,7 +483,6 @@ function pushbuttonAddNode_Callback(hObject, eventdata, handles)
     NTobj.nodeedges(nnode,:) = [0 0 0 0];
         
     plotNet();
-%   dispNetWithImage();
 return
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -447,17 +496,16 @@ function iSel = selectEdge(color)
         iSel = []
         return
     end
-    guilock = true;
+    
+    figure(newf)
+    L = findobj(gca,'Type','line');
+    turn(edgeplotH, L, true);
               
     iSel=[];
-    for ie = 1:length(edgeplotH); 
-        edgeplotH(ie).PickableParts = 'all';
-        edgeplotH(ie).HitTest = 'on';
-    end
    
-    figure(newf)
     w = 0;
     display('Select desired edges. Then press any keyboard key (while the figure window is active)')
+    try
     while ~w
         w = waitforbuttonpress;
     end
@@ -476,12 +524,10 @@ function iSel = selectEdge(color)
         delete(datatips)
         selEdges = [selEdges iSel];
     end
-
-    for lc = 1:length(edgeplotH); 
-        edgeplotH(lc).PickableParts = 'none'; 
+    catch exception
+        disp(getReport(exception))
     end
-    
-    guilock = false;
+    turn(edgeplotH, L, false);
 return
 
 function pushbuttonSelectEdge_Callback(hObject, eventdata, handles)
@@ -569,7 +615,7 @@ return
 % Actions
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function pushbuttonMerge_Callback(hObject, eventdata, handles)
-    global NTobj newf selNodes selEdges guilock
+    global NTobj newf selNodes selEdges nodeplotH guilock
 
     if isempty(selNodes)
         return
@@ -580,7 +626,8 @@ function pushbuttonMerge_Callback(hObject, eventdata, handles)
         ind = [];
         return
     end
-    
+    guilock = true;
+
     figure(newf)
     
     % Unselect all edges
@@ -606,7 +653,10 @@ function pushbuttonMerge_Callback(hObject, eventdata, handles)
     for i=1:nSel
         Merge(selNodes(i));
     end
- return
+    
+    guilock = false;
+    nodeplotH.PickableParts = 'none';
+return
 
 function Merge(iNode)
 	global NTobj selNodes
@@ -614,11 +664,7 @@ function Merge(iNode)
     iEdge1 = NTobj.nodeedges(iNode,1);
     iEdge2 = NTobj.nodeedges(iNode,2);
     
-    %figure(newf)
     joinEdges(iEdge1, iEdge2, iNode);
-
-%     NTobj.edgenodes(iEdge1,:) = ...
-%         [NTobj.edgenodes(iEdge1,1) NTobj.edgenodes(iEdge2,2)];
 
     NTobj.edgenodes(iEdge2,:) =[];
     NTobj.edgeedges(iEdge2,:,:) =[];
@@ -634,14 +680,6 @@ function Merge(iNode)
     NTobj.nodenodes(iNode,:) = [];
     NTobj.nodeedges(iNode,:) = [];
     
-%     ind = find(NTobj.nodenodes(iNodeBefore,:) == iNodeAfter);
-%     
-%     c10 = NTobj.edgenodes(iEdge1,:);
-%     c1 = c10(c10 ~= 0);
-%     iNodeAfter = c1(c1~=iNodeBefore);
-%         
-%     NTobj.nodenodes(iNodeBefore,ind) = iNodeAfter;
-
     selNodes(selNodes==iNode) = [];
     plotNet();
 %     redraw();
@@ -697,54 +735,15 @@ function joinEdges(iEdge1, iEdge2, iNode)
 
 return
 
-function [iNodeBefore iNodeAfter] = recountNet(iEdge1, iEdge2, iNode)
-    global NTobj
-
-return
-
-function pushbuttonMerge_CallbackOld(hObject, eventdata, handles)
-%     global newf NTobj nodeplotH selNodes guilock
-% 
-%     iSel = [];
-%     nodeplotH.PickableParts = 'all';
-%     guilock = true;
-%             
-%     figure(newf)
-%     data = findobj(gca,'Type','datatip');
-%     delete(data)
-% 
-%     display('Use datatips to select a nodes between merging edges. Then hit any keyboard key (while the figure window is active).')
-%     while true
-%         w = 1; 
-%         found = false;
-%         while w || ~found
-%             w = waitforbuttonpress;
-%             datatips = findobj(gca,'Type','datatip');
-%             found = ~isempty(datatips);
-%         end
-%         if found
-%             break;
-%         end
-%     end
-%     figure(newf)
-%     iSel = datatips.DataIndex;
-% %     delete(datatips)
-% 
-%     nodeplotH.PickableParts = 'none';
-%     guilock = false;
-% 
-%     disp(iSel)
-% return
-return
-
-
 function removeSelected()
-    global NTobj newf selNodes selEdges
+    global NTobj newf selNodes selEdges nodeplotH
 
     if isempty(selNodes) & isempty(selEdges)
         return
     end
 
+    figure(newf);
+    
     % remove nodes and adjacent edges to those nodes
     if (~isempty(selNodes))
         dokeep = true(1,NTobj.nnode);
@@ -769,60 +768,10 @@ function removeSelected()
     
     plotNet();
     %redraw();
-return
-
-function removeSelected_old()
-    global NTobj newf selNodes selEdges
-    
-    if isempty(selNodes) & isempty(selEdges)
-        return
-    end
-    
-    figure(newf)
-    if ~isempty(selNodes)
-        for i=1:length(selNodes)
-            iSel = selNodes(i);
-            
-            % Remove edges stemming from this node
-            for j=1:NTobj.nnode
-                iMatch = find(NTobj.nodenodes(j,:)==iSel);
-                if ~isempty(iMatch)
-                    buf = NTobj.nodenodes(j,:);
-                    buf(iMatch) = [];
-                    NTobj.nodenodes(j,:) = [buf 0];
-                end
-            end
-            
-            for j=1:NTobj.nedge
-                iMatch = find(NTobj.edgenodes(j,:)==iSel);
-                if ~isempty(iMatch)
-                    selEdges = [selEdges j];
-                end
-            end
-        end
-        selEdges = sort(unique(selEdges), 'descend');
         
-        NTobj.degrees(selNodes) = [];
-        NTobj.nodepos(selNodes,:) = [];
-        NTobj.nodenodes(selNodes,:);
-        NTobj.nodeedges(selNodes,:) = [];
-        
-        NTobj.nnode = NTobj.nnode - length(selNodes);
-        selNodes=[];
-    end
-    
-    if ~isempty(selEdges)
-        NTobj.edgepath(selEdges) =[];
-        NTobj.cumedgelen(selEdges) =[];
-        NTobj.edgelens(selEdges) =[];
-        NTobj.edgeedges(selEdges,:,:) =[];
-        NTobj.edgenodes(selEdges,:) =[];
-        
-        NTobj.nedge = NTobj.nedge - length(selEdges);
-        selEdges = [];
-    end
-    
-    redraw();
+%     nodeplotH.PickableParts = 'none';
+%     %scatter = findobj(gca,'Type','scatter');
+%     set(gca, 'PickableParts', 'none');    
 return
 
 function pushbuttonRemoveSelected_Callback(hObject, eventdata, handles)
@@ -840,7 +789,6 @@ function redraw()
     delete(Lines);
     
     plotNet();
-%     dispNetWithImage();
 return
 
 function iSel = findNearestEdge(xy)
