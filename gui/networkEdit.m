@@ -57,11 +57,11 @@ function networkEdit_OpeningFcn(hObject, eventdata, handles, varargin)
 handles.output = hObject;
 selectFirst = true;
 
+
 % Update handles structure
 guidata(hObject, handles);
 
 % global locking of gui to prevent multiple selections being made at once
-guilock = false;
 
 %% set defaults
     NTobj = [];
@@ -79,7 +79,6 @@ guilock = false;
         end        
     end
 
-
     newf =[];
     selNodes = [];
     selEdges = [];
@@ -94,8 +93,11 @@ guilock = false;
     hSlider2 = findobj('Tag', 'sliderBrightness');
     hSlider2.Min = -0.5;
     hSlider2.Max = 0.5;
+    guilock = false;
 
-% UIWAIT makes networkEdit wait for user response (see UIRESUME)
+    ActionsFreeze(handles);
+
+    % UIWAIT makes networkEdit wait for user response (see UIRESUME)
 % uiwait(handles.mainFig);
 
 % --- Outputs from this function are returned to the command line.
@@ -123,9 +125,9 @@ function LoadData()
     selNodes = [];
     selEdges = [];
     
-%     [file,path] = uigetfile('../*.mat');
-%     fileName = [path file];
-fileName = '/home/matlab/Lena/networktools/exampleERnetwork.mat';
+    [file,path] = uigetfile('../*.mat');
+    fileName = [path file];
+% fileName = '/home/matlab/Lena/networktools/exampleERnetwork.mat';
     load(fileName);
 
     NTobj = NT;
@@ -139,11 +141,11 @@ fileName = '/home/matlab/Lena/networktools/exampleERnetwork.mat';
 
     dispNetWithImage();
     figure(newf);
-    
 return
 
 function menuLoad_Callback(hObject, eventdata, handles)
     LoadData();
+    ActionsEnable(handles);
 return
 
 function menuSave_Callback(hObject, eventdata, handles)
@@ -168,6 +170,8 @@ function menuClear_Callback(hObject, eventdata, handles)
     hSlider1.Value = 1;
     hSlider2 = findobj('Tag', 'sliderBrightness');
     hSlider2.Value = 0;
+    
+    ActionsFreeze(handles)
 return
 
 function menuQuit_Callback(hObject, eventdata, handles)
@@ -260,12 +264,6 @@ function plotNet()
 return
 
 function sliderContrast_Callback(hObject, eventdata, handles)
-% hObject    handle to sliderContrast (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'Value') returns position of slider
-%        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
     global imageH  imgObj
     try
         a = get(hObject,'Value');
@@ -319,60 +317,6 @@ function ind = findNearestNode(nodepos, xy)
     ind = find(d2 == M);       
 return
 
-function turnOn(obj1, obj2, on)
-    global guilock
-        
-    n = length(obj1);
-    if length(obj1) ~= n
-        return;
-    end
-    
-    guilock = true;
-    for i=1:n
-        obj1(i).PickableParts = 'all';
-        obj2(i).PickableParts = 'all';
-        obj1(i).HitTest = 'on';
-        obj2(i).HitTest = 'on';
-    end
-return
-
-function turnOff(obj1, obj2, on)
-    global guilock newf
-        
-    n = length(obj1);
-    if length(obj1) ~= n
-        return;
-    end
-    
-    guilock = false;
-    figure(newf)
-    set(gcf,'Pointer','arrow');
-    for i=1:n
-        obj1(i).PickableParts = 'none';
-        obj2(i).PickableParts = 'none';
-        obj1(i).HitTest = 'off';
-        obj2(i).HitTest = 'off';
-    end
-return
-
-function imitateEnter()
-% Imitation of clicking Enter on the figure
-    global selectFirst
-    try
-        P = get(gcf, 'Position');
-        %             SS = get(0,'screensize');
-        hroot=groot;
-        set(hroot,'PointerLocation',[P(1)+10, P(2)+10]);
-        pause(2);
-        inputemu('key_normal','\ENTER');
-    catch exception
-        disp(getReport(exception))
-        selectFirst = false;
-        return
-    end
-    selectFirst = false;
-return
-
 function ind = selectNode(addSelected, color)
     global newf nodeplotH selNodes guilock selectFirst
 
@@ -382,15 +326,19 @@ function ind = selectNode(addSelected, color)
         return
     end
     disp('Use datatips to select desired nodes. Then hit any keyboard key (while the figure window is active).')
+    if isempty(newf)
+        disp('Network not loaded, nothing to select')
+        return;
+    end
     
     try
         figure(newf)
         scatter = findobj(gca,'Type','scatter');
         turnOn(nodeplotH, scatter);
 
-        if selectFirst
-            imitateEnter()
-        end
+%         if selectFirst
+%             imitateEnter()
+%         end
 
         ind = [];
         w = 0;
@@ -521,9 +469,9 @@ function iSel = selectEdge(color)
         L = findobj(gca,'Type','line');
         turnOn(edgeplotH, L);
 
-        if selectFirst
-            imitateEnter()
-        end
+%         if selectFirst
+%             imitateEnter()
+%         end
 
         iSel=[];  
         w = 0;
@@ -783,6 +731,60 @@ function joinEdges(iEdge1, iEdge2, iNode)
 return
 
 function removeSelected()
+    global NTobj newf selNodes selEdges
+    
+    if isempty(selNodes) & isempty(selEdges)
+        return
+    end
+    
+    figure(newf)
+    if ~isempty(selNodes)
+        for i=1:length(selNodes)
+            iSel = selNodes(i);
+            
+            % Remove edges stemming from this node
+            for j=1:NTobj.nnode
+                iMatch = find(NTobj.nodenodes(j,:)==iSel);
+                if ~isempty(iMatch)
+                    buf = NTobj.nodenodes(j,:);
+                    buf(iMatch) = [];
+                    NTobj.nodenodes(j,:) = [buf 0];
+                end
+            end
+            
+            for j=1:NTobj.nedge
+                iMatch = find(NTobj.edgenodes(j,:)==iSel);
+                if ~isempty(iMatch)
+                    selEdges = [selEdges j];
+                end
+            end
+        end
+        selEdges = sort(unique(selEdges), 'descend');
+        
+        NTobj.degrees(selNodes) = [];
+        NTobj.nodepos(selNodes,:) = [];
+        NTobj.nodenodes(selNodes,:);
+        NTobj.nodeedges(selNodes,:) = [];
+        
+        NTobj.nnode = NTobj.nnode - length(selNodes);
+        selNodes=[];
+    end
+    
+    if ~isempty(selEdges)
+        NTobj.edgepath(selEdges) =[];
+        NTobj.cumedgelen(selEdges) =[];
+        NTobj.edgelens(selEdges) =[];
+        NTobj.edgeedges(selEdges,:,:) =[];
+        NTobj.edgenodes(selEdges,:) =[];
+        
+        NTobj.nedge = NTobj.nedge - length(selEdges);
+        selEdges = [];
+    end
+    
+    redraw();
+return
+
+function removeSelectedAlt()
     global NTobj newf selNodes selEdges nodeplotH edgeplotH
 
     if isempty(selNodes) & isempty(selEdges)
@@ -943,3 +945,83 @@ function pushbuttonEdgeWidths_Callback(hObject, eventdata, handles)
     end
     set(gcf,'Pointer','arrow');
 return
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%   UTILS
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function turnOn(obj1, obj2, on)
+    global guilock
+        
+    n = length(obj1);
+    if length(obj1) ~= n
+        return;
+    end
+    
+    guilock = true;
+    for i=1:n
+        obj1(i).PickableParts = 'all';
+        obj2(i).PickableParts = 'all';
+        obj1(i).HitTest = 'on';
+        obj2(i).HitTest = 'on';
+    end
+return
+
+function turnOff(obj1, obj2, on)
+    global guilock newf
+        
+    n = length(obj1);
+    if length(obj1) ~= n
+        return;
+    end
+    
+    guilock = false;
+    figure(newf)
+    set(gcf,'Pointer','arrow');
+    for i=1:n
+        obj1(i).PickableParts = 'none';
+        obj2(i).PickableParts = 'none';
+        obj1(i).HitTest = 'off';
+        obj2(i).HitTest = 'off';
+    end
+return
+
+function imitateEnter()
+% Imitation of clicking Enter on the figure
+    global selectFirst
+    try
+        P = get(gcf, 'Position');
+        %             SS = get(0,'screensize');
+        hroot=groot;
+        set(hroot,'PointerLocation',[P(1)+10, P(2)+10]);
+        pause(2);
+        inputemu('key_normal','\ENTER');
+    catch exception
+        disp(getReport(exception))
+        selectFirst = false;
+        return
+    end
+    selectFirst = false;
+return
+
+function ActionsEnable(handles)  
+    handles.uipanelNodes.Visible = 'On';
+    handles.uipanelEdges.Visible = 'On';
+
+    handles.pushbuttonRemoveSelected.Enable = 'On';
+    handles.pushbuttonMerge.Enable = 'On';
+    handles.pushbuttonImgReset.Visible = 'On';
+    handles.sliderContrast.Enable = 'On';
+    handles.sliderBrightness.Enable = 'On';
+return
+
+function ActionsFreeze(handles)
+    handles.uipanelNodes.Visible = 'Off';
+    handles.uipanelEdges.Visible = 'Off';
+    
+    handles.pushbuttonRemoveSelected.Enable = 'Off';
+    handles.pushbuttonMerge.Enable = 'Off';
+    handles.pushbuttonImgReset.Visible = 'Off';
+    handles.sliderContrast.Enable = 'Off';
+    handles.sliderBrightness.Enable = 'Off';
+return
+
