@@ -22,7 +22,7 @@ function varargout = networkEdit(varargin)
 
 % Edit the above text to modify the response to help networkEdit
 
-% Last Modified by GUIDE v2.5 20-Sep-2021 12:25:56
+% Last Modified by GUIDE v2.5 27-Sep-2021 11:39:00
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -310,13 +310,6 @@ return
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Manage nodes
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function ind = findNearestNode(nodepos, xy)
-    dNodes = nodepos - xy;
-    d2 = dNodes(:,1).^2 + dNodes(:,2).^2;
-    M = min(d2);
-    ind = find(d2 == M);       
-return
-
 function ind = selectNode(addSelected, color)
     global newf nodeplotH selNodes guilock selectFirst
 
@@ -329,6 +322,7 @@ function ind = selectNode(addSelected, color)
     
     try
         figure(newf)
+
         scatter = findobj(gca,'Type','scatter');
         pickOn(nodeplotH, scatter);
 
@@ -338,12 +332,22 @@ function ind = selectNode(addSelected, color)
 
         ind = [];
         w = 0;
-        figure(newf);        
+        figure(newf);     
         while ~w
             w = waitforbuttonpress;
         end
-        
+        figure(newf)
         datatips = findobj(gca,'Type','datatip');
+        
+        % Cancel selection if 'Esc' hit
+        value = double(get(gcf,'CurrentCharacter'));
+        if value==27
+            figure(newf)
+            delete(datatips)
+            scatter = findobj(gca,'Type','scatter');
+            pickOff(nodeplotH, scatter);
+            return
+        end
         
         if ~isempty(datatips)
             ind = [datatips.DataIndex];
@@ -386,6 +390,10 @@ function pushbuttonUnselectAllNodes_Callback(hObject, eventdata, handles)
     global newf selNodes
         
     figure(newf)
+    scatter = findobj(gca,'Type','scatter');
+    for i=1:length(selNodes)
+        scatter.CData(selNodes(i),:) = [1 0 0];
+    end
     selNodes = []; 
 return
 
@@ -431,6 +439,7 @@ function pushbuttonAddNode_Callback(hObject, eventdata, handles)
         xy = roi.Position;
         delete(roi);
         set(gcf,'Pointer','watch');
+        handles.signal.String = 'WAIT...';
 
         NTobj.nnode = NTobj.nnode + 1;
         nnode = NTobj.nnode;
@@ -440,12 +449,12 @@ function pushbuttonAddNode_Callback(hObject, eventdata, handles)
         NTobj.nodeedges(nnode,:) = [0 0 0 0];
 
         plotNet();
-        set(gcf,'Pointer','arrow');
     catch exception
         disp(getReport(exception))
-        figure(newf)
-        set(gcf,'Pointer','arrow');
     end
+    figure(newf)
+    set(gcf,'Pointer','arrow');
+    handles.signal.String = '';
 return
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -478,6 +487,15 @@ function iSel = selectEdge(color)
 
         figure(newf)
         datatips = findobj(gca,'Type','datatip');
+        
+        % Cancel selection if 'Esc' hit
+        value = double(get(gcf,'CurrentCharacter'));
+        if value==27
+            delete(datatips)
+            pickOff(edgeplotH, L);
+            return
+        end
+
         if ~isempty(datatips)
             for idt=1:length(datatips)
                 Ln = datatips(idt).Parent;
@@ -583,6 +601,13 @@ function pushbuttonAddEdge_Callback(hObject, eventdata, handles)
     guilock = false;
 return
  
+function ind = findNearestNode(nodepos, xy)
+    dNodes = nodepos - xy;
+    d2 = dNodes(:,1).^2 + dNodes(:,2).^2;
+    M = min(d2);
+    ind = find(d2 == M);       
+return
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Actions
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -597,13 +622,14 @@ function pushbuttonMerge_Callback(hObject, eventdata, handles)
         disp('Cannot merge, gui is locked. Finish previous operation.')
         return
     end
-
+    
+    figure(newf)
+    ActionsHide(handles);
+    guilock = true;
+    set(gcf,'Pointer','watch');
+    handles.signal.String = 'WAIT...';
+    
     try
-        figure(newf)
-        ActionsHide(handles);
-        guilock = true;
-        set(gcf,'Pointer','watch');
-
         % Unselect all edges
         L = findobj(gca,'Type','line');
         for i=1:length(L)
@@ -671,56 +697,11 @@ function pushbuttonMerge_Callback(hObject, eventdata, handles)
         disp(getReport(exception))
     end
     
+    handles.signal.String = '';
     guilock = false;
     figure(newf)
     ActionsEnable(handles);
     set(gcf,'Pointer','arrow');
-return
-
-function Merge(iNode)
-	global NTobj newf
-    
-    n1 = iNode;
-    e1 = NTobj.nodeedges(n1,1);
-    e2 = NTobj.nodeedges(n1,2);
-    
-    if (NTobj.edgenodes(e1,1)==n1) % edge points away from the node
-        path1 = flipud(NTobj.edgepath{e1});
-        othernode1 = NTobj.edgenodes(e1,2); % the neighbor of this node
-    else
-        path1 = NTobj.edgepath{e1};
-        othernode1 = NTobj.edgenodes(e1,1);
-    end
-    
-    if (NTobj.edgenodes(e2,1)==n1) % edge points away from the node
-        path2 = NTobj.edgepath{e2};
-        othernode2 = NTobj.edgenodes(e2,2); % the neighbor of this node
-    else
-        path2 = flipud(NTobj.edgepath{e2});
-        othernode2= NTobj.edgenodes(e2,1);
-    end
-    
-    newedgepath = [path1(1:end,:); path2(2:end,:)];
-
-    dokeep = true(1,NTobj.nedge);
-    dokeep([e2]) = false;
-    keepind = find(dokeep);
-    NTobj.keepEdges(keepind);
-%    NTobj.keepEdges([array containing all edges except e2]);
-    
-    NTobj.edgenodes(e1,:) = [othernode1 othernode2];
-    NTobj.edgepath{e2} = newedgepath;
-    NTobj.setupNetwork() % this will reset a bunch of other arrays
-    
-    % node indices have not changed yet
-    % remove the excess node
-    dokeep = true(1,NTobj.nnode);
-    dokeep(n1) = false;
-    keepind = find(dokeep);
-    NTobj.keepNodes(keepind);
-      
-%     figure(newf)
-%     plotNet();
 return
 
 function removeSelected()
@@ -729,12 +710,12 @@ function removeSelected()
     if isempty(selNodes) & isempty(selEdges)
         return
     end
-
+    
+    guilock = true;
+    figure(newf);
+    set(gcf,'Pointer','watch');
+    handles.signal.String = 'WAIT...';
     try
-        guilock = true;
-        figure(newf);
-        set(gcf,'Pointer','watch');    
-
         % remove nodes and adjacent edges to those nodes
         if (~isempty(selNodes))
             dokeep = true(1,NTobj.nnode);
@@ -761,6 +742,7 @@ function removeSelected()
         disp(getReport(exception))
     end
     
+    handles.signal.String = '';
     guilock = false;
     figure(newf)
     set(gcf,'Pointer','arrow');
@@ -775,6 +757,7 @@ function redraw()
     
     figure(newf);
     set(gcf,'Pointer','watch');
+    handles.signal.String = 'WAIT...';
     
     scatter = findobj(gca,'Type','scatter');
     delete(scatter);
@@ -784,6 +767,7 @@ function redraw()
     
     plotNet();
     set(gcf,'Pointer','arrow');
+    handles.signal.String = '';
 return
 
 function iSel = findNearestEdge(xy)
@@ -813,11 +797,12 @@ function pushbuttonEdgeWidths_Callback(hObject, eventdata, handles)
         ind = [];
         return
     end
+    
+    figure(newf);
+    set(gcf,'Pointer','watch');
+    handles.signal.String = 'WAIT...';
+    hold on
     try
-        figure(newf);
-        set(gcf,'Pointer','watch');
-        hold on
-
         h = drawline();
         ep = h.Position;
         X1 = ep(1,1); Y1 = ep(1,2); X2 = ep(2,1); Y2 = ep(2,2);
@@ -870,11 +855,16 @@ function pushbuttonEdgeWidths_Callback(hObject, eventdata, handles)
         set(gcf,'Pointer','arrow');
     end
     set(gcf,'Pointer','arrow');
+    handles.signal.String = '';
 return
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %   UTILS
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function testKey()
+
+return
+
 function pickOn(obj1, obj2, on)
     n = length(obj1);
     if length(obj1) ~= n
@@ -948,4 +938,3 @@ function ActionsHide(handles)
     handles.sliderContrast.Enable = 'Off';
     handles.sliderBrightness.Enable = 'Off';
 return
-
