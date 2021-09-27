@@ -125,9 +125,9 @@ function LoadData()
     selNodes = [];
     selEdges = [];
     
-%     [file,path] = uigetfile('../*.mat');
-%     fileName = [path file];
-fileName = '/home/matlab/Lena/networktools/exampleERnetwork.mat';
+    [file,path] = uigetfile('../*.mat');
+    fileName = [path file];
+% fileName = '/home/matlab/Lena/networktools/exampleERnetwork.mat';
     load(fileName);
 
     NTobj = NT;
@@ -326,9 +326,9 @@ function ind = selectNode(addSelected, color)
         scatter = findobj(gca,'Type','scatter');
         pickOn(nodeplotH, scatter);
 
-%         if selectFirst
-%             imitateEnter()
-%         end
+        if selectFirst
+            imitateEnter()
+        end
 
         ind = [];
         w = 0;
@@ -753,21 +753,21 @@ function pushbuttonRemoveSelected_Callback(hObject, eventdata, handles)
 return
 
 function redraw()
-    global newf
-    
-    figure(newf);
-    set(gcf,'Pointer','watch');
-    handles.signal.String = 'WAIT...';
-    
-    scatter = findobj(gca,'Type','scatter');
-    delete(scatter);
-    
-    Lines = findobj(gca,'Type','line');
-    delete(Lines);
-    
-    plotNet();
-    set(gcf,'Pointer','arrow');
-    handles.signal.String = '';
+%     global newf
+%     
+%     figure(newf);
+%     set(gcf,'Pointer','watch');
+%     handles.signal.String = 'WAIT...';
+%     
+%     scatter = findobj(gca,'Type','scatter');
+%     delete(scatter);
+%     
+%     Lines = findobj(gca,'Type','line');
+%     delete(Lines);
+%     
+%     plotNet();
+%     set(gcf,'Pointer','arrow');
+%     handles.signal.String = '';
 return
 
 function iSel = findNearestEdge(xy)
@@ -861,10 +861,6 @@ return
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %   UTILS
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function testKey()
-
-return
-
 function pickOn(obj1, obj2, on)
     n = length(obj1);
     if length(obj1) ~= n
