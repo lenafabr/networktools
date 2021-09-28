@@ -95,7 +95,7 @@ guidata(hObject, handles);
     hSlider2.Max = 0.5;
     guilock = false;
 
-    ActionsHide(handles);
+    ActionsDisable(handles);
 
     % UIWAIT makes networkEdit wait for user response (see UIRESUME)
 % uiwait(handles.mainFig);
@@ -115,7 +115,8 @@ varargout{1} = handles.output;
 % Manage menu
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function LoadData()
-    global newf NTobj imgObj plotoptObj imgCData0 selNodes selEdges fileName
+    global newf NTobj imgObj plotoptObj selNodes selEdges fileName
+%     global imgCData0
     
     close(figure(1))
     newf =[];
@@ -137,7 +138,7 @@ function LoadData()
         
     figure(1);       
     imageH = imshow(imgObj,[]);
-    imgCData0 = imageH.CData;
+%     imgCData0 = imageH.CData;
 
     dispNetWithImage();
     figure(newf);
@@ -171,7 +172,7 @@ function menuClear_Callback(hObject, eventdata, handles)
     hSlider2 = findobj('Tag', 'sliderBrightness');
     hSlider2.Value = 0;
     
-    ActionsHide(handles)
+    ActionsDisable(handles)
 return
 
 function menuQuit_Callback(hObject, eventdata, handles)
@@ -238,7 +239,7 @@ global newf NTobj imgObj plotoptObj nodeplotH edgeplotH imageH selNodes;
 return
 
 function plotNet()
-    global newf NTobj plotoptObj nodeplotH edgeplotH selNodes;
+    global newf NTobj plotoptObj nodeplotH edgeplotH
     
     newf=figure(1);
     
@@ -252,15 +253,6 @@ function plotNet()
     plotoptObj.datatipindex = true;
     [nodeplotH,edgeplotH] = NTobj.plotNetwork(plotoptObj);
     hold off
-    
-    if ~isempty(selNodes)
-        figure(newf);
-        hold on
-%         selscatH = scatter(NTobj.nodepos(selNodes,1),...
-%             NTobj.nodepos(selNodes,2), 20, 'b', 'filled');
-%        selscatH.PickableParts='none';
-        hold off       
-    end
 return
 
 function sliderContrast_Callback(hObject, eventdata, handles)
@@ -273,15 +265,12 @@ function sliderContrast_Callback(hObject, eventdata, handles)
               
         imageH.CData(imageH.CData>1) = 1;
         imageH.CData(imageH.CData<0) = 0;
+    catch exception
+        disp(getReport(exception))
     end
 return
 
 function sliderBrightness_Callback(hObject, eventdata, handles)
-% hObject    handle to sliderBrightness (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-% Hints: get(hObject,'Value') returns position of slider
-%        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
     global imageH B imgObj
     try
         hSlider1 = findobj('Tag', 'sliderContrast');
@@ -289,11 +278,10 @@ function sliderBrightness_Callback(hObject, eventdata, handles)
         b = get(hObject,'Value');
         imageH.CData = imgObj*a+b
         
-       % imageH.CData = imageH.CData + b-B;
-       % B = b;
-
         imageH.CData(imageH.CData>1) = 1;
         imageH.CData(imageH.CData<0) = 0;
+    catch exception
+        disp(getReport(exception))
     end
 return
 
@@ -319,12 +307,12 @@ function ind = selectNode(addSelected, color)
         return
     end
     disp('Use datatips to select desired nodes. Then hit any keyboard key (while the figure window is active).')
-    
+   
     try
         figure(newf)
 
         scatter = findobj(gca,'Type','scatter');
-        pickOn(nodeplotH, scatter);
+        PickableOn(nodeplotH, scatter);
 
         if selectFirst
             imitateEnter()
@@ -345,7 +333,7 @@ function ind = selectNode(addSelected, color)
             figure(newf)
             delete(datatips)
             scatter = findobj(gca,'Type','scatter');
-            pickOff(nodeplotH, scatter);
+            PickableOff(nodeplotH, scatter);
             return
         end
         
@@ -368,7 +356,7 @@ function ind = selectNode(addSelected, color)
     end
     figure(newf)
     scatter = findobj(gca,'Type','scatter');
-    pickOff(nodeplotH, scatter);
+    PickableOff(nodeplotH, scatter);
 return
     
 function pushbuttonSelectNode_Callback(hObject, eventdata, handles)  
@@ -471,7 +459,7 @@ function iSel = selectEdge(color)
     try
         figure(newf)
         L = findobj(gca,'Type','line');
-        pickOn(edgeplotH, L);
+        PickableOn(edgeplotH, L);
 
 %         if selectFirst
 %             imitateEnter()
@@ -492,7 +480,7 @@ function iSel = selectEdge(color)
         value = double(get(gcf,'CurrentCharacter'));
         if value==27
             delete(datatips)
-            pickOff(edgeplotH, L);
+            PickableOff(edgeplotH, L);
             return
         end
 
@@ -511,7 +499,7 @@ function iSel = selectEdge(color)
     end
     figure(newf)
     L = findobj(gca,'Type','line');
-    pickOff(edgeplotH, L);
+    PickableOff(edgeplotH, L);
 return
 
 function pushbuttonSelectEdge_Callback(hObject, eventdata, handles)
@@ -591,12 +579,8 @@ function pushbuttonAddEdge_Callback(hObject, eventdata, handles)
         hold off
         edgeplotH(i).addprop('edgeind');
         edgeplotH(i).edgeind = i;
-
-        guilock=false;
-        figure(newf);
     catch exception
         disp(getReport(exception))
-        guilock = true;
     end
     guilock = false;
 return
@@ -624,10 +608,11 @@ function pushbuttonMerge_Callback(hObject, eventdata, handles)
     end
     
     figure(newf)
-    ActionsHide(handles);
-    guilock = true;
-    set(gcf,'Pointer','watch');
-    handles.signal.String = 'WAIT...';
+    StartAction(handles, 'Merging edges...');
+%     ActionsDisable(handles);
+%     guilock = true;
+%     set(gcf,'Pointer','watch');
+%     handles.signal.String = 'WAIT...';
     
     try
         % Unselect all edges
@@ -696,12 +681,12 @@ function pushbuttonMerge_Callback(hObject, eventdata, handles)
     catch exception
         disp(getReport(exception))
     end
-    
-    handles.signal.String = '';
-    guilock = false;
-    figure(newf)
-    ActionsEnable(handles);
-    set(gcf,'Pointer','arrow');
+    EndAction(handles)
+%     ActionsEnable(handles);
+%     handles.signal.String = '';
+%     guilock = false;
+%     figure(newf)
+%     set(gcf,'Pointer','arrow');
 return
 
 function removeSelected()
@@ -711,10 +696,10 @@ function removeSelected()
         return
     end
     
-    guilock = true;
-    figure(newf);
-    set(gcf,'Pointer','watch');
-    handles.signal.String = 'WAIT...';
+%     figure(newf);
+%     guilock = true;
+%     set(gcf,'Pointer','watch');
+%     handles.signal.String = 'Removing selected...';
     try
         % remove nodes and adjacent edges to those nodes
         if (~isempty(selNodes))
@@ -742,14 +727,16 @@ function removeSelected()
         disp(getReport(exception))
     end
     
-    handles.signal.String = '';
-    guilock = false;
-    figure(newf)
-    set(gcf,'Pointer','arrow');
+%     handles.signal.String = '';
+%     guilock = false;
+%     figure(newf)
+%     set(gcf,'Pointer','arrow');
 return
 
 function pushbuttonRemoveSelected_Callback(hObject, eventdata, handles)
+    StartAction(handles, 'Removing selected...')
     removeSelected();
+    EndAction(handles)
 return
 
 function redraw()
@@ -798,9 +785,11 @@ function pushbuttonEdgeWidths_Callback(hObject, eventdata, handles)
         return
     end
     
+%     set(gcf,'Pointer','watch');
+%     handles.signal.String = 'WAIT...';
+    StartAction(handles, 'Calculating edge width...')
+
     figure(newf);
-    set(gcf,'Pointer','watch');
-    handles.signal.String = 'WAIT...';
     hold on
     try
         h = drawline();
@@ -848,20 +837,22 @@ function pushbuttonEdgeWidths_Callback(hObject, eventdata, handles)
         else
             NTobj.edgewidth{iSel} = [NTobj.edgewidth{iSel}' [w d]']';
         end
-        figure(newf);
+%         figure(newf);
     catch exception
         disp(getReport(exception))
-        figure(newf);
-        set(gcf,'Pointer','arrow');
+%         figure(newf);
+%         set(gcf,'Pointer','arrow');
     end
-    set(gcf,'Pointer','arrow');
-    handles.signal.String = '';
+    
+%     set(gcf,'Pointer','arrow');
+%     handles.signal.String = '';
+    EndAction(handles)
 return
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %   UTILS
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function pickOn(obj1, obj2, on)
+function PickableOn(obj1, obj2, on)
     n = length(obj1);
     if length(obj1) ~= n
         return;
@@ -876,7 +867,7 @@ function pickOn(obj1, obj2, on)
     end
 return
 
-function pickOff(obj1, obj2, on)
+function PickableOff(obj1, obj2, on)
     global guilock newf
         
     n = length(obj1);
@@ -913,24 +904,38 @@ function imitateEnter()
     selectFirst = false;
 return
 
-function ActionsEnable(handles)  
-    handles.uipanelNodes.Visible = 'On';
-    handles.uipanelEdges.Visible = 'On';
-
-    handles.pushbuttonRemoveSelected.Enable = 'On';
-    handles.pushbuttonMerge.Enable = 'On';
-    handles.pushbuttonImgReset.Visible = 'On';
+function ActionsEnable(handles)
+    hb = findobj('Style','pushbutton');
+    for i=1:length(hb)
+        hb(i).Enable = 'On';
+    end
     handles.sliderContrast.Enable = 'On';
     handles.sliderBrightness.Enable = 'On';
 return
 
-function ActionsHide(handles)
-    handles.uipanelNodes.Visible = 'Off';
-    handles.uipanelEdges.Visible = 'Off';
-    
-    handles.pushbuttonRemoveSelected.Enable = 'Off';
-    handles.pushbuttonMerge.Enable = 'Off';
-    handles.pushbuttonImgReset.Visible = 'Off';
+function ActionsDisable(handles)
+    hb = findobj('Style','pushbutton');
+    for i=1:length(hb)
+        hb(i).Enable = 'Off';
+    end
     handles.sliderContrast.Enable = 'Off';
     handles.sliderBrightness.Enable = 'Off';
+return
+
+function StartAction(handles, str)
+global newf guilock
+    ActionsDisable(handles);
+    guilock = true;
+    handles.signal.String = str;
+    figure(newf)
+    set(gcf,'Pointer','watch');
+return
+
+function EndAction(handles)
+global newf guilock
+    ActionsEnable(handles);
+    guilock = false;
+    handles.signal.String = '';
+    figure(newf)
+    set(gcf,'Pointer','Arrow');
 return
