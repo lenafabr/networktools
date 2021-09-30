@@ -608,12 +608,7 @@ function pushbuttonMerge_Callback(hObject, eventdata, handles)
     end
     
     figure(newf)
-    StartAction(handles, 'Merging edges...');
-%     ActionsDisable(handles);
-%     guilock = true;
-%     set(gcf,'Pointer','watch');
-%     handles.signal.String = 'WAIT...';
-    
+    StartAction(handles, 'Merging edges...');  
     try
         % Unselect all edges
         L = findobj(gca,'Type','line');
@@ -622,10 +617,11 @@ function pushbuttonMerge_Callback(hObject, eventdata, handles)
         end
         selEdges = [];
 
-        % Restrict merging only for the nodes with 2 adjoined edges,
-        % unselect other nodes
         scatter = findobj(gca,'Type','scatter');
         nSel = length(selNodes);
+        
+        % Restrict merging only for the nodes with 2 adjoined edges,
+        % unselect other nodes
         iIgnore = [];
         for i=1:nSel
             if NTobj.degrees(selNodes(i)) ~= 2
@@ -636,57 +632,122 @@ function pushbuttonMerge_Callback(hObject, eventdata, handles)
         selNodes(iIgnore) = [];
         nSel = length(selNodes);
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        % Edges involved
+        edges = [];
+        for i=1:nSel
+            edges = [edges NTobj.nodeedges(selNodes(i),1:2)];
+        end
+        edges = unique(edges);
+        nE = length(edges);
+
+        % Organize all selected nodes into chains of sequential nodes
+        j = 1;
+        while true        
+            n0 = selNodes(1);
+            chain{j}.nodes = [n0];
+            selNodes(selNodes==n0) = [];
+            n = n0;
+            while true
+                n1 = NTobj.nodenodes(n,1);
+                if any(selNodes(:) == n1)
+                    chain{j}.nodes = [n1 chain{j}.nodes];
+                    selNodes(selNodes==n1) = [];
+                    n = n1;
+                else
+                    break;
+                end
+            end
+
+            n = n0;
+            while true
+                n2 = NTobj.nodenodes(n,2);
+                if any(selNodes(:) == n2)
+                    chain{j}.nodes = [chain{j}.nodes n2];
+                    selNodes(selNodes==n2) = [];
+                    n = n2;
+                else
+                    break;
+                end
+            end
+            
+            if isempty(selNodes)
+                break;
+            end
+            j = j+1;
+        end
+        
         dokeepEdge = true(1,NTobj.nedge);
         dokeepNode = true(1,NTobj.nnode);
-        for i=1:nSel
-            n1 = selNodes(i);
-            e1 = NTobj.nodeedges(n1,1);
-            e2 = NTobj.nodeedges(n1,2);
-            
-            if (NTobj.edgenodes(e1,1)==n1) % edge points away from the node
-                path1 = flipud(NTobj.edgepath{e1});
-                othernode1 = NTobj.edgenodes(e1,2); % the neighbor of this node
-            else
-                path1 = NTobj.edgepath{e1};
-                othernode1 = NTobj.edgenodes(e1,1);
-            end
-            
-            if (NTobj.edgenodes(e2,1)==n1) % edge points away from the node
-                path2 = NTobj.edgepath{e2};
-                othernode2 = NTobj.edgenodes(e2,2); % the neighbor of this node
-            else
-                path2 = flipud(NTobj.edgepath{e2});
-                othernode2= NTobj.edgenodes(e2,1);
-            end
-            
-            newedgepath = [path1(1:end,:); path2(2:end,:)];
-            NTobj.edgepath{e1} = newedgepath;          
-            NTobj.edgenodes(e1,:) = [othernode1 othernode2];
-            
-            dokeepEdge([e2]) = false; 
-            dokeepNode(n1) = false;
-        end
-        NTobj.setupNetwork()
         
+        % Convert each chain into a single edge
+        for i=1:length(chain)
+            nodes = chain{i}.nodes;
+            n = nodes(1);
+            n1 = NTobj.nodenodes(n,1);
+            n2 = NTobj.nodenodes(n,2);
+            e1 = NTobj.nodeedges(n,1);
+            e2 = NTobj.nodeedges(n,2);
+            
+            for j=1:length(edges)
+                if NTobj.edgenodes(edges(j),1)==n1 && NTobj.edgenodes(edges(j),2)==n
+                    newpath = NTobj.edgepath{e1};
+                end
+                if NTobj.edgenodes(edges(j),1)==n && NTobj.edgenodes(edges(j),2)==n
+                    newpath = flipud(NTobj.edgepath{e1});
+                end
+            end
+            othernode1 = n1;
+            dokeepNode(n) = false;
+            dokeepEdge(e2) = false;
+            e0 = e1;
+
+            for j=1:length(edges)
+                if NTobj.edgenodes(edges(j),1)==n ...
+                        && NTobj.edgenodes(edges(j),2)==n2
+                    newpath = [newpath(1:end-1,:); NTobj.edgepath{e2}];
+                end
+                if NTobj.edgenodes(edges(j),1)==n2 ...
+                        && NTobj.edgenodes(edges(j),2)==n
+                    newpath = [newpath(1:end-1,:); flipud(NTobj.edgepath{e2})];
+                end
+            end
+
+            for iN=2:length(nodes)
+                n = nodes(iN);
+                n2 = NTobj.nodenodes(n,2);
+                e2 = NTobj.nodeedges(n,2);
+
+                for j=1:length(edges)
+                    if NTobj.edgenodes(edges(j),1)==n ...
+                            && NTobj.edgenodes(edges(j),2)==n2
+                        newpath = [newpath(1:end-1,:); NTobj.edgepath{e2}];
+                    end
+                    if NTobj.edgenodes(edges(j),1)==n2 ...
+                            && NTobj.edgenodes(edges(j),2)==n
+                        newpath = [newpath(1:end-1,:); flipud(NTobj.edgepath{e2})];
+                    end
+                end
+                dokeepNode(n) = false;
+                dokeepEdge(e2) = false;
+            end
+            othernode2 = n2;
+            NTobj.edgenodes(e1,:) = [othernode1 othernode2];
+            NTobj.edgepath{e0} = newpath;
+        end
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        NTobj.setupNetwork()
         keepindEdge = find(dokeepEdge);
         NTobj.keepEdges(keepindEdge);
-        
         keepindNode = find(dokeepNode);
         NTobj.keepNodes(keepindNode);
-       
+        
         figure(newf)
         plotNet();
-        
-        selNodes = [];
     catch exception
         disp(getReport(exception))
     end
     EndAction(handles)
-%     ActionsEnable(handles);
-%     handles.signal.String = '';
-%     guilock = false;
-%     figure(newf)
-%     set(gcf,'Pointer','arrow');
 return
 
 function removeSelected()
@@ -737,24 +798,6 @@ function pushbuttonRemoveSelected_Callback(hObject, eventdata, handles)
     StartAction(handles, 'Removing selected...')
     removeSelected();
     EndAction(handles)
-return
-
-function redraw()
-%     global newf
-%     
-%     figure(newf);
-%     set(gcf,'Pointer','watch');
-%     handles.signal.String = 'WAIT...';
-%     
-%     scatter = findobj(gca,'Type','scatter');
-%     delete(scatter);
-%     
-%     Lines = findobj(gca,'Type','line');
-%     delete(Lines);
-%     
-%     plotNet();
-%     set(gcf,'Pointer','arrow');
-%     handles.signal.String = '';
 return
 
 function iSel = findNearestEdge(xy)
