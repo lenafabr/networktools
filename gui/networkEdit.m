@@ -301,26 +301,23 @@ return
 function ind = selectNode(addSelected, color)
     global newf nodeplotH selNodes guilock selectFirst
 
-    if (guilock)
-        disp('Cannot select nodes, gui is locked. Finish previous operation.')
-        ind = [];
-        return
-    end
     disp('Use datatips to select desired nodes. Then hit any keyboard key (while the figure window is active).')
    
     try
         figure(newf)
+%         if selectFirst
+%             imitateEnter()
+%         end
 
         scatter = findobj(gca,'Type','scatter');
         PickableOn(nodeplotH, scatter);
-
-        if selectFirst
-            imitateEnter()
-        end
-
+        
         ind = [];
         w = 0;
-        figure(newf);     
+        if ~exist('newf','var')
+            return;
+        end
+        figure(newf);
         while ~w
             w = waitforbuttonpress;
         end
@@ -354,13 +351,24 @@ function ind = selectNode(addSelected, color)
     catch exception
         disp(getReport(exception))
     end
+    if ~exist('newf','var')
+        return;
+    end
     figure(newf)
     scatter = findobj(gca,'Type','scatter');
     PickableOff(nodeplotH, scatter);
 return
     
-function pushbuttonSelectNode_Callback(hObject, eventdata, handles)  
+function pushbuttonSelectNode_Callback(hObject, eventdata, handles)
+    global guilock
+    if (guilock)
+        disp('Cannot select nodes, gui is locked. Finish previous operation.')
+        return
+    end
+    StartAction(handles, "Use datatips to select nodes. Then hit Enter to complete, Esc to cancel")
+    set(gcf,'Pointer','Arrow');
     ind = selectNode(true, [0 0 1]);
+    EndAction(handles)
 return
 
 function pushbuttonUnselectNode_Callback(hObject, eventdata, handles)
@@ -451,16 +459,10 @@ return
 function iSel = selectEdge(color)
     global newf NTobj selEdges edgeplotH guilock selectFirst
     
-    if (guilock)
-        disp('Cannot select edges, gui is locked. Finish previous operation.')
-        iSel = []
-        return
-    end
+    L = findobj(gca,'Type','line');
+    PickableOn(edgeplotH, L);
     try
         figure(newf)
-        L = findobj(gca,'Type','line');
-        PickableOn(edgeplotH, L);
-
 %         if selectFirst
 %             imitateEnter()
 %         end
@@ -503,7 +505,15 @@ function iSel = selectEdge(color)
 return
 
 function pushbuttonSelectEdge_Callback(hObject, eventdata, handles)
+    global guilock
+    if (guilock)
+        disp('Cannot select edges, gui is locked. Finish previous operation.')
+        return
+    end
+    StartAction(handles, "Use datatips to select edges. Then hit Enter to complete, Esc to cancel")
+    set(gcf,'Pointer','Arrow');
     iSel = selectEdge('b');
+    EndAction(handles)
 return
 
 function pushbuttonUnselectEdge_Callback(hObject, eventdata, handles)
@@ -595,6 +605,121 @@ return
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Actions
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function chain = makeNodeChains(selN)
+% Organize all selected nodes into chains of sequential nodes
+    global NTobj selNodes
+    
+    j = 1;
+    while true
+        n0 = selN(1);
+        chain{j}.nodes = [n0];
+        selN(selN==n0) = [];
+        n = n0;
+        while true
+            n1 = NTobj.nodenodes(n,1);
+            if any(selN(:) == n1)
+                chain{j}.nodes = [n1 chain{j}.nodes];
+                selN(selN==n1) = [];
+                n = n1;
+            else
+                break;
+            end
+        end
+        
+        n = n0;
+        while true
+            n2 = NTobj.nodenodes(n,2);
+            if any(selN(:) == n2)
+                chain{j}.nodes = [chain{j}.nodes n2];
+                selN(selN==n2) = [];
+                n = n2;
+            else
+                break;
+            end
+        end
+        
+        if isempty(selN)
+            break;
+        end
+        j = j+1;
+    end
+    return;
+return
+
+function Nodes = reorderNodes(selN)
+    global NTobj
+    
+    I = 0;
+    for i=1:length(selN)
+        nn = NTobj.nodenodes(selN(i),1:2);
+        if ~any(selN(:) == nn(1))
+            Nodes = [nn(1) selN(i)];
+            lastNode = nn(2);
+            I = i;
+            break;
+        end
+        if ~any(selN(:) == nn(2))
+            Nodes = [nn(2) selN(i)];
+            lastNode = nn(1);
+            I = i;
+            break;
+        end
+    end
+    selN(I) = [];
+
+    % Organize Nodes sequentially
+    if ~isempty(selN)
+        while true
+            for i=1:length(selN)
+                nn = NTobj.nodenodes(selN(i),1:2);
+                if nn(1) == Nodes(end)
+                    Nodes = [Nodes selN(i)];
+                    lastNode = nn(2);
+                    I = i;
+                    break;
+                end
+                if nn(2) == Nodes(end)
+                    Nodes = [Nodes selN(i)];
+                    lastNode = nn(1);
+                    I = i;
+                    break;
+                end
+            end
+            selN(I) = [];
+            
+            if isempty(selN)
+                break;
+            end
+        end
+    end
+    Nodes = [Nodes lastNode];
+return
+
+function [Edges pth] = traceEdges(Nodes, edges)
+% Organize edges sequentially
+    global NTobj
+    
+    nN = length(Nodes);
+    nE = length(edges);
+    Edges = [];
+    for i=1:nN-1
+        n1 = Nodes(i);
+        n2 = Nodes(i+1);
+        for j=1:nE
+            e = NTobj.edgenodes(edges(j),:);
+            if e(1) == n1 && e(2) == n2 || e(1) == n2 && e(2) == n1
+                Edges = [Edges edges(j)];
+                if NTobj.edgenodes(edges(j),:) == [n1 n2]
+                    pth{i} = NTobj.edgepath{edges(j)};
+                else
+                    pth{i} = flipud(NTobj.edgepath{edges(j)});
+                end
+                break;
+            end
+        end
+    end
+return
+
 function pushbuttonMerge_Callback(hObject, eventdata, handles)
     global NTobj newf selNodes selEdges nodeplotH guilock
 
@@ -617,11 +742,11 @@ function pushbuttonMerge_Callback(hObject, eventdata, handles)
         end
         selEdges = [];
 
-        scatter = findobj(gca,'Type','scatter');
         nSel = length(selNodes);
         
         % Restrict merging only for the nodes with 2 adjoined edges,
         % unselect other nodes
+        scatter = findobj(gca,'Type','scatter');
         iIgnore = [];
         for i=1:nSel
             if NTobj.degrees(selNodes(i)) ~= 2
@@ -632,7 +757,6 @@ function pushbuttonMerge_Callback(hObject, eventdata, handles)
         selNodes(iIgnore) = [];
         nSel = length(selNodes);
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         % Edges involved
         edges = [];
         for i=1:nSel
@@ -642,104 +766,36 @@ function pushbuttonMerge_Callback(hObject, eventdata, handles)
         nE = length(edges);
 
         % Organize all selected nodes into chains of sequential nodes
-        j = 1;
-        while true        
-            n0 = selNodes(1);
-            chain{j}.nodes = [n0];
-            selNodes(selNodes==n0) = [];
-            n = n0;
-            while true
-                n1 = NTobj.nodenodes(n,1);
-                if any(selNodes(:) == n1)
-                    chain{j}.nodes = [n1 chain{j}.nodes];
-                    selNodes(selNodes==n1) = [];
-                    n = n1;
-                else
-                    break;
-                end
-            end
-
-            n = n0;
-            while true
-                n2 = NTobj.nodenodes(n,2);
-                if any(selNodes(:) == n2)
-                    chain{j}.nodes = [chain{j}.nodes n2];
-                    selNodes(selNodes==n2) = [];
-                    n = n2;
-                else
-                    break;
-                end
-            end
-            
-            if isempty(selNodes)
-                break;
-            end
-            j = j+1;
-        end
+        chain = makeNodeChains(selNodes);
         
         dokeepEdge = true(1,NTobj.nedge);
         dokeepNode = true(1,NTobj.nnode);
         
         % Convert each chain into a single edge
-        for i=1:length(chain)
-            nodes = chain{i}.nodes;
-            n = nodes(1);
-            n1 = NTobj.nodenodes(n,1);
-            n2 = NTobj.nodenodes(n,2);
-            e1 = NTobj.nodeedges(n,1);
-            e2 = NTobj.nodeedges(n,2);
+        for iChain=1:length(chain)
+            selN = chain{iChain}.nodes;
+            dokeepNode(selN) = false;
             
-            for j=1:length(edges)
-                if NTobj.edgenodes(edges(j),1)==n1 && NTobj.edgenodes(edges(j),2)==n
-                    newpath = NTobj.edgepath{e1};
-                end
-                if NTobj.edgenodes(edges(j),1)==n && NTobj.edgenodes(edges(j),2)==n
-                    newpath = flipud(NTobj.edgepath{e1});
-                end
-            end
-            othernode1 = n1;
-            dokeepNode(n) = false;
-            dokeepEdge(e2) = false;
-            e0 = e1;
+            Nodes = reorderNodes(selN);
+            nN = length(Nodes);
+            
+            [Edges pth] = traceEdges(Nodes, edges);
+            NTobj.edgenodes(Edges(1),:) = [Nodes(1) Nodes(end)];
 
-            for j=1:length(edges)
-                if NTobj.edgenodes(edges(j),1)==n ...
-                        && NTobj.edgenodes(edges(j),2)==n2
-                    newpath = [newpath(1:end-1,:); NTobj.edgepath{e2}];
-                end
-                if NTobj.edgenodes(edges(j),1)==n2 ...
-                        && NTobj.edgenodes(edges(j),2)==n
-                    newpath = [newpath(1:end-1,:); flipud(NTobj.edgepath{e2})];
-                end
+            newpath = pth{1};
+            for i=2:length(pth)
+                newpath = [newpath(1:end-1,:); pth{i}];
             end
-
-            for iN=2:length(nodes)
-                n = nodes(iN);
-                n2 = NTobj.nodenodes(n,2);
-                e2 = NTobj.nodeedges(n,2);
-
-                for j=1:length(edges)
-                    if NTobj.edgenodes(edges(j),1)==n ...
-                            && NTobj.edgenodes(edges(j),2)==n2
-                        newpath = [newpath(1:end-1,:); NTobj.edgepath{e2}];
-                    end
-                    if NTobj.edgenodes(edges(j),1)==n2 ...
-                            && NTobj.edgenodes(edges(j),2)==n
-                        newpath = [newpath(1:end-1,:); flipud(NTobj.edgepath{e2})];
-                    end
-                end
-                dokeepNode(n) = false;
-                dokeepEdge(e2) = false;
-            end
-            othernode2 = n2;
-            NTobj.edgenodes(e1,:) = [othernode1 othernode2];
-            NTobj.edgepath{e0} = newpath;
+            NTobj.edgepath{Edges(1)} = newpath;
+            
+            dokeepEdge(Edges(2:end)) = false;
         end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        NTobj.setupNetwork()
+        
         keepindEdge = find(dokeepEdge);
-        NTobj.keepEdges(keepindEdge);
         keepindNode = find(dokeepNode);
+
+        NTobj.setupNetwork()
+        NTobj.keepEdges(keepindEdge);
         NTobj.keepNodes(keepindNode);
         
         figure(newf)
@@ -971,7 +1027,7 @@ global newf guilock
     guilock = true;
     handles.signal.String = str;
     figure(newf)
-    set(gcf,'Pointer','watch');
+%     set(gcf,'Pointer','watch');
 return
 
 function EndAction(handles)
