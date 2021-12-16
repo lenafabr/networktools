@@ -299,7 +299,7 @@ methods
         NT.setupNetwork();
     end
     
-    function outputNetwork(NT,outfile,edgepaths,nodelabels)
+    function outputNetwork(NT,outfile,nodelabels)
         % output network structure to file
         % edgepaths: lists of cycles, in terms of edges to include as LOOP
         % structures
@@ -336,15 +336,15 @@ methods
         end
         
         % independent cycles as a list of edges
-        if (exist('edgepaths','var'))
-            for pc = 1:length(edgepaths)
-                fprintf(of,['LOOP ' sprintf('%d ',edgepaths{pc}) '\n'])
-            end   
-        elseif (~isempty(NT.loops))
-            for pc = 1:length(NT.loops)
-                fprintf(of,['LOOP ' sprintf('%d ',NT.loops{pc}) '\n'])
-            end   
-        end
+%         if (exist('edgepaths','var'))
+%             for pc = 1:length(edgepaths)
+%                 fprintf(of,['LOOP ' sprintf('%d ',edgepaths{pc}) '\n'])
+%             end   
+%         elseif (~isempty(NT.loops))
+%             for pc = 1:length(NT.loops)
+%                 fprintf(of,['LOOP ' sprintf('%d ',NT.loops{pc}) '\n'])
+%             end   
+%         end
         fclose(of)
     end
     
