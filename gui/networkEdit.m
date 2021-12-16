@@ -22,7 +22,7 @@ function varargout = networkEdit(varargin)
 
 % Edit the above text to modify the response to help networkEdit
 
-% Last Modified by GUIDE v2.5 29-Aug-2021 17:04:26
+% Last Modified by GUIDE v2.5 27-Sep-2021 11:39:00
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -52,15 +52,16 @@ function networkEdit_OpeningFcn(hObject, eventdata, handles, varargin)
 % handles    structure with handles and user data (see GUIDATA)
 % varargin   command line arguments to networkEdit (see VARARGIN)
     global newf NTobj imgObj plotoptObj selNodes selEdges guilock
-
+    global selectFirst
 % Choose default command line output for networkEdit
 handles.output = hObject;
+selectFirst = true;
+
 
 % Update handles structure
 guidata(hObject, handles);
 
 % global locking of gui to prevent multiple selections being made at once
-guilock = false;
 
 %% set defaults
     NTobj = [];
@@ -78,7 +79,6 @@ guilock = false;
         end        
     end
 
-
     newf =[];
     selNodes = [];
     selEdges = [];
@@ -93,8 +93,11 @@ guilock = false;
     hSlider2 = findobj('Tag', 'sliderBrightness');
     hSlider2.Min = -0.5;
     hSlider2.Max = 0.5;
+    guilock = false;
 
-% UIWAIT makes networkEdit wait for user response (see UIRESUME)
+    ActionsDisable(handles);
+
+    % UIWAIT makes networkEdit wait for user response (see UIRESUME)
 % uiwait(handles.mainFig);
 
 % --- Outputs from this function are returned to the command line.
@@ -111,8 +114,9 @@ varargout{1} = handles.output;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Manage menu
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function menuLoad_Callback(hObject, eventdata, handles)
-    global newf NTobj imgObj plotoptObj imgCData0 selNodes selEdges fileName
+function LoadData()
+    global newf NTobj imgObj plotoptObj selNodes selEdges fileName
+%     global imgCData0
     
     close(figure(1))
     newf =[];
@@ -124,10 +128,9 @@ function menuLoad_Callback(hObject, eventdata, handles)
     
     [file,path] = uigetfile('../*.mat');
     fileName = [path file];
+% fileName = '/home/matlab/Lena/networktools/exampleERnetwork.mat';
     load(fileName);
 
-%     load('/home/matlab/Lena/networktools/examples/exampleERnetwork.mat')
-    
     NTobj = NT;
     imgObj = img;
     plotoptObj = plotopt;
@@ -135,9 +138,15 @@ function menuLoad_Callback(hObject, eventdata, handles)
         
     figure(1);       
     imageH = imshow(imgObj,[]);
-    imgCData0 = imageH.CData;
+%     imgCData0 = imageH.CData;
 
     dispNetWithImage();
+    figure(newf);
+return
+
+function menuLoad_Callback(hObject, eventdata, handles)
+    LoadData();
+    ActionsEnable(handles);
 return
 
 function menuSave_Callback(hObject, eventdata, handles)
@@ -162,6 +171,8 @@ function menuClear_Callback(hObject, eventdata, handles)
     hSlider1.Value = 1;
     hSlider2 = findobj('Tag', 'sliderBrightness');
     hSlider2.Value = 0;
+    
+    ActionsDisable(handles)
 return
 
 function menuQuit_Callback(hObject, eventdata, handles)
@@ -196,7 +207,7 @@ global newf NTobj imgObj plotoptObj nodeplotH edgeplotH imageH selNodes;
             imgObj = double(imgObj)/max(double(imgObj(:))); 
             imageH = imshow(imgObj,[0 1]);
         end
-        set(newf, 'Position', [20 20 500 500]);
+        set(newf, 'Position', [40 40 500 500]);
         set(gca,'Position',[0,0,1,1])
     end
     hold all
@@ -228,7 +239,7 @@ global newf NTobj imgObj plotoptObj nodeplotH edgeplotH imageH selNodes;
 return
 
 function plotNet()
-    global newf NTobj plotoptObj nodeplotH edgeplotH selNodes;
+    global newf NTobj plotoptObj nodeplotH edgeplotH
     
     newf=figure(1);
     
@@ -242,24 +253,9 @@ function plotNet()
     plotoptObj.datatipindex = true;
     [nodeplotH,edgeplotH] = NTobj.plotNetwork(plotoptObj);
     hold off
-    
-    if ~isempty(selNodes)
-        figure(newf);
-        hold on
-        selscatH = scatter(NTobj.nodepos(selNodes,1),...
-            NTobj.nodepos(selNodes,2), 20, 'b', 'filled');
-%        selscatH.PickableParts='none';
-        hold off       
-    end
 return
 
 function sliderContrast_Callback(hObject, eventdata, handles)
-% hObject    handle to sliderContrast (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'Value') returns position of slider
-%        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
     global imageH  imgObj
     try
         a = get(hObject,'Value');
@@ -269,15 +265,12 @@ function sliderContrast_Callback(hObject, eventdata, handles)
               
         imageH.CData(imageH.CData>1) = 1;
         imageH.CData(imageH.CData<0) = 0;
+    catch exception
+        disp(getReport(exception))
     end
 return
 
 function sliderBrightness_Callback(hObject, eventdata, handles)
-% hObject    handle to sliderBrightness (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-% Hints: get(hObject,'Value') returns position of slider
-%        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
     global imageH B imgObj
     try
         hSlider1 = findobj('Tag', 'sliderContrast');
@@ -285,11 +278,10 @@ function sliderBrightness_Callback(hObject, eventdata, handles)
         b = get(hObject,'Value');
         imageH.CData = imgObj*a+b
         
-       % imageH.CData = imageH.CData + b-B;
-       % B = b;
-
         imageH.CData(imageH.CData>1) = 1;
         imageH.CData(imageH.CData<0) = 0;
+    catch exception
+        disp(getReport(exception))
     end
 return
 
@@ -306,38 +298,41 @@ return
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Manage nodes
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function ind = findNearestNode(nodepos, xy)
-    dNodes = nodepos - xy;
-    d2 = dNodes(:,1).^2 + dNodes(:,2).^2;
-    M = min(d2);
-    ind = find(d2 == M);       
-return
-
 function ind = selectNode(addSelected, color)
-    global newf NTobj nodeplotH selNodes guilock
+    global newf nodeplotH selNodes guilock selectFirst
 
-    if (guilock)
-        disp('Cannot select nodes, gui is locked. Finish previous operation.')
-        ind = [];
-        return
-    end
-    
-    guilock = true;
-    nodeplotH.PickableParts = 'all';
-    nodeplotH.HitTest = 'on';
-    ind = [];
-
-    figure(newf)
-    w = 0;
-    display('Use datatips to select desired nodes. Then hit any keyboard key (while the figure window is active).')
+    disp('Use datatips to select desired nodes. Then hit any keyboard key (while the figure window is active).')
+   
     try
+        figure(newf)
+%         if selectFirst
+%             imitateEnter()
+%         end
+
+        scatter = findobj(gca,'Type','scatter');
+        PickableOn(nodeplotH, scatter);
+        
+        ind = [];
+        w = 0;
+        if ~exist('newf','var')
+            return;
+        end
+        figure(newf);
         while ~w
             w = waitforbuttonpress;
         end
-        %input('On figure, select nodes for removal. Then press enter.')
-        
-        figure(newf);
+        figure(newf)
         datatips = findobj(gca,'Type','datatip');
+        
+        % Cancel selection if 'Esc' hit
+        value = double(get(gcf,'CurrentCharacter'));
+        if value==27
+            figure(newf)
+            delete(datatips)
+            scatter = findobj(gca,'Type','scatter');
+            PickableOff(nodeplotH, scatter);
+            return
+        end
         
         if ~isempty(datatips)
             ind = [datatips.DataIndex];
@@ -356,12 +351,24 @@ function ind = selectNode(addSelected, color)
     catch exception
         disp(getReport(exception))
     end
-    nodeplotH.PickableParts = 'none';    
-    guilock = false;
+    if ~exist('newf','var')
+        return;
+    end
+    figure(newf)
+    scatter = findobj(gca,'Type','scatter');
+    PickableOff(nodeplotH, scatter);
 return
     
-function pushbuttonSelectNode_Callback(hObject, eventdata, handles)  
+function pushbuttonSelectNode_Callback(hObject, eventdata, handles)
+    global guilock
+    if (guilock)
+        disp('Cannot select nodes, gui is locked. Finish previous operation.')
+        return
+    end
+    StartAction(handles, "Use datatips to select nodes. Then hit Enter to complete, Esc to cancel")
+    set(gcf,'Pointer','Arrow');
     ind = selectNode(true, [0 0 1]);
+    EndAction(handles)
 return
 
 function pushbuttonUnselectNode_Callback(hObject, eventdata, handles)
@@ -388,6 +395,7 @@ return
 
 function pushbuttonSelArea_Callback(hObject, eventdata, handles)
     global newf NTobj selNodes selEdges
+    
     selEdges = unique(selEdges);
     figure(newf);
     hold on
@@ -420,72 +428,92 @@ return
 function pushbuttonAddNode_Callback(hObject, eventdata, handles)
     global newf NTobj selNodes
     
-    figure(newf);
-    roi = drawpoint;
-    xy = roi.Position;
-    delete(roi);
-    
-    NTobj.nnode = NTobj.nnode + 1;
-    nnode = NTobj.nnode;
-    NTobj.nodepos(nnode,:) = xy';
-    NTobj.degrees(nnode) = 0;
-    NTobj.nodenodes(nnode,:) = [0 0 0 0];
-    NTobj.nodeedges(nnode,:) = [0 0 0 0];
-        
-    plotNet();
-%   dispNetWithImage();
+    try
+        figure(newf);
+
+        roi = drawpoint;
+        xy = roi.Position;
+        delete(roi);
+        set(gcf,'Pointer','watch');
+        handles.signal.String = 'WAIT...';
+
+        NTobj.nnode = NTobj.nnode + 1;
+        nnode = NTobj.nnode;
+        NTobj.nodepos(nnode,:) = xy';
+        NTobj.degrees(nnode) = 0;
+        NTobj.nodenodes(nnode,:) = [0 0 0 0];
+        NTobj.nodeedges(nnode,:) = [0 0 0 0];
+
+        plotNet();
+    catch exception
+        disp(getReport(exception))
+    end
+    figure(newf)
+    set(gcf,'Pointer','arrow');
+    handles.signal.String = '';
 return
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Manage edges
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function iSel = selectEdge(color)
-    global newf NTobj selEdges edgeplotH guilock
+    global newf NTobj selEdges edgeplotH guilock selectFirst
     
-    if (guilock)
-        disp('Cannot select edges, gui is locked. Finish previous operation.')
-        iSel = []
-        return
-    end
-    guilock = true;
-              
-    iSel=[];
-    for ie = 1:length(edgeplotH); 
-        edgeplotH(ie).PickableParts = 'all';
-        edgeplotH(ie).HitTest = 'on';
-    end
-   
-    figure(newf)
-    w = 0;
-    display('Select desired edges. Then press any keyboard key (while the figure window is active)')
-    while ~w
-        w = waitforbuttonpress;
-    end
-    %input('On figure, select edges. Then press enter.')
-    
-    figure(newf)
-    datatips = findobj(gca,'Type','datatip');
-    
-    if ~isempty(datatips)
-        for idt=1:length(datatips)
-            Ln = datatips(idt).Parent;
-            Ln.Color = color;
-            iSel = [iSel Ln.edgeind];
-        end
-        
-        delete(datatips)
-        selEdges = [selEdges iSel];
-    end
+    L = findobj(gca,'Type','line');
+    PickableOn(edgeplotH, L);
+    try
+        figure(newf)
+%         if selectFirst
+%             imitateEnter()
+%         end
 
-    for lc = 1:length(edgeplotH); 
-        edgeplotH(lc).PickableParts = 'none'; 
+        iSel=[];  
+        w = 0;
+        display('Select desired edges. Then press any keyboard key (while the figure window is active)')
+        
+        while ~w
+            w = waitforbuttonpress;
+        end
+
+        figure(newf)
+        datatips = findobj(gca,'Type','datatip');
+        
+        % Cancel selection if 'Esc' hit
+        value = double(get(gcf,'CurrentCharacter'));
+        if value==27
+            delete(datatips)
+            PickableOff(edgeplotH, L);
+            return
+        end
+
+        if ~isempty(datatips)
+            for idt=1:length(datatips)
+                Ln = datatips(idt).Parent;
+                Ln.Color = color;
+                iSel = [iSel Ln.edgeind];
+            end
+
+            delete(datatips)
+            selEdges = [selEdges iSel];
+        end
+    catch exception
+        disp(getReport(exception))
     end
-    
-    guilock = false;
+    figure(newf)
+    L = findobj(gca,'Type','line');
+    PickableOff(edgeplotH, L);
 return
 
 function pushbuttonSelectEdge_Callback(hObject, eventdata, handles)
+    global guilock
+    if (guilock)
+        disp('Cannot select edges, gui is locked. Finish previous operation.')
+        return
+    end
+    StartAction(handles, "Use datatips to select edges. Then hit Enter to complete, Esc to cancel")
+    set(gcf,'Pointer','Arrow');
     iSel = selectEdge('b');
+    EndAction(handles)
 return
 
 function pushbuttonUnselectEdge_Callback(hObject, eventdata, handles)
@@ -519,57 +547,181 @@ function pushbuttonAddEdge_Callback(hObject, eventdata, handles)
     end
     guilock = true;
     
-    figure(newf);
-    
-    roi = drawpolyline;
-    
-    w = 0;
-    display('Draw new edge path. When done, do right mouse click. Then adjust path and hit any key to continue')
-    while ~w
-        w = waitforbuttonpress;
+    try
+        figure(newf);
+
+        roi = drawpolyline;
+
+        w = 0;
+        display('Draw new edge path. When done, do right mouse click. Then adjust path and hit any key to continue')
+        while ~w
+            w = waitforbuttonpress;
+        end
+        figure(newf);
+        pnt = roi.Position;
+        delete(roi);
+
+        ind1 = findNearestNode(NTobj.nodepos, pnt(1,:));
+        pnt(1,:) = NTobj.nodepos(ind1,:);
+        ind2 = findNearestNode(NTobj.nodepos, pnt(end,:));        
+        pnt(end,:) = NTobj.nodepos(ind2,:);
+        x = pnt(:,1);
+        y = pnt(:,2);
+
+        i = NTobj.nedge + 1;
+        NTobj.nedge = i;
+
+        NTobj.edgenodes(i,:) = [ind1 ind2];
+        NTobj.edgepath{i} = [x y];
+        NTobj.cumedgelen{i} =[];
+
+        NTobj.setCumEdgeLen(i,true);
+        NTobj.edgevals{i} = [];
+        NTobj.edgewidth{i} = [];
+
+       % CLF = hypot(diff(x), diff(y));   % Calculate integrand from x,y derivatives
+       % NTobj.edgelens(i) = trapz(CLF); % Integrate to calculate arc length
+
+        NTobj.edgeedges(i,:,:) = NTobj.edgeedges(i-1,:,:);
+
+        hold on
+        edgeplotH(i) = plot(x,y, 'Color','g', 'LineWidth',2);
+        hold off
+        edgeplotH(i).addprop('edgeind');
+        edgeplotH(i).edgeind = i;
+    catch exception
+        disp(getReport(exception))
     end
-    
-    pnt = roi.Position;
-    delete(roi);
-    
-    guilock=false;
-    
-    ind1 = findNearestNode(NTobj.nodepos, pnt(1,:));
-    pnt(1,:) = NTobj.nodepos(ind1,:);
-    ind2 = findNearestNode(NTobj.nodepos, pnt(end,:));        
-    pnt(end,:) = NTobj.nodepos(ind2,:);
-    x = pnt(:,1);
-    y = pnt(:,2);
-    
-    i = NTobj.nedge + 1;
-    NTobj.nedge = i;
-    
-    NTobj.edgenodes(i,:) = [ind1 ind2];
-    NTobj.edgepath{i} = [x y];
-    NTobj.cumedgelen{i} =[];
-    
-    NTobj.setCumEdgeLen(i,true);
-    NTobj.edgevals{i} = [];
-    NTobj.edgewidth{i} = [];
-    
-   % CLF = hypot(diff(x), diff(y));   % Calculate integrand from x,y derivatives
-   % NTobj.edgelens(i) = trapz(CLF); % Integrate to calculate arc length
-    
-    NTobj.edgeedges(i,:,:) = NTobj.edgeedges(i-1,:,:);
-    
-    hold on
-    edgeplotH(i) = plot(x,y, 'Color','g', 'LineWidth',2);
-    hold off
-    edgeplotH(i).addprop('edgeind');
-    edgeplotH(i).edgeind = i;
-        
+    guilock = false;
 return
  
+function ind = findNearestNode(nodepos, xy)
+    dNodes = nodepos - xy;
+    d2 = dNodes(:,1).^2 + dNodes(:,2).^2;
+    M = min(d2);
+    ind = find(d2 == M);       
+return
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Actions
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function chain = makeNodeChains(selN)
+% Organize all selected nodes into chains of sequential nodes
+    global NTobj selNodes
+    
+    j = 1;
+    while true
+        n0 = selN(1);
+        chain{j}.nodes = [n0];
+        selN(selN==n0) = [];
+        n = n0;
+        while true
+            n1 = NTobj.nodenodes(n,1);
+            if any(selN(:) == n1)
+                chain{j}.nodes = [n1 chain{j}.nodes];
+                selN(selN==n1) = [];
+                n = n1;
+            else
+                break;
+            end
+        end
+        
+        n = n0;
+        while true
+            n2 = NTobj.nodenodes(n,2);
+            if any(selN(:) == n2)
+                chain{j}.nodes = [chain{j}.nodes n2];
+                selN(selN==n2) = [];
+                n = n2;
+            else
+                break;
+            end
+        end
+        
+        if isempty(selN)
+            break;
+        end
+        j = j+1;
+    end
+    return;
+return
+
+function Nodes = reorderNodes(selN)
+    global NTobj
+    
+    I = 0;
+    for i=1:length(selN)
+        nn = NTobj.nodenodes(selN(i),1:2);
+        if ~any(selN(:) == nn(1))
+            Nodes = [nn(1) selN(i)];
+            lastNode = nn(2);
+            I = i;
+            break;
+        end
+        if ~any(selN(:) == nn(2))
+            Nodes = [nn(2) selN(i)];
+            lastNode = nn(1);
+            I = i;
+            break;
+        end
+    end
+    selN(I) = [];
+
+    % Organize Nodes sequentially
+    if ~isempty(selN)
+        while true
+            for i=1:length(selN)
+                nn = NTobj.nodenodes(selN(i),1:2);
+                if nn(1) == Nodes(end)
+                    Nodes = [Nodes selN(i)];
+                    lastNode = nn(2);
+                    I = i;
+                    break;
+                end
+                if nn(2) == Nodes(end)
+                    Nodes = [Nodes selN(i)];
+                    lastNode = nn(1);
+                    I = i;
+                    break;
+                end
+            end
+            selN(I) = [];
+            
+            if isempty(selN)
+                break;
+            end
+        end
+    end
+    Nodes = [Nodes lastNode];
+return
+
+function [Edges pth] = traceEdges(Nodes, edges)
+% Organize edges sequentially
+    global NTobj
+    
+    nN = length(Nodes);
+    nE = length(edges);
+    Edges = [];
+    for i=1:nN-1
+        n1 = Nodes(i);
+        n2 = Nodes(i+1);
+        for j=1:nE
+            e = NTobj.edgenodes(edges(j),:);
+            if e(1) == n1 && e(2) == n2 || e(1) == n2 && e(2) == n1
+                Edges = [Edges edges(j)];
+                if NTobj.edgenodes(edges(j),:) == [n1 n2]
+                    pth{i} = NTobj.edgepath{edges(j)};
+                else
+                    pth{i} = flipud(NTobj.edgepath{edges(j)});
+                end
+                break;
+            end
+        end
+    end
+return
+
 function pushbuttonMerge_Callback(hObject, eventdata, handles)
-    global NTobj newf selNodes selEdges guilock
+    global NTobj newf selNodes selEdges nodeplotH guilock
 
     if isempty(selNodes)
         return
@@ -577,270 +729,131 @@ function pushbuttonMerge_Callback(hObject, eventdata, handles)
 
     if (guilock)
         disp('Cannot merge, gui is locked. Finish previous operation.')
-        ind = [];
         return
     end
     
     figure(newf)
-    
-    % Unselect all edges
-    L = findobj(gca,'Type','line');
-    for i=1:length(L)
-        L(i).Color = 'g';
-    end
-    selEdges = [];
-
-    % Restrict murger only for 2 adjoined edges
-    scatter = findobj(gca,'Type','scatter');
-    nSel = length(selNodes);
-    iIgnore = [];
-    for i=1:nSel
-        if NTobj.degrees(selNodes(i)) ~= 2
-            iIgnore = [iIgnore i];
-            scatter.CData(selNodes(i),:) = [1 0 0];
+    StartAction(handles, 'Merging edges...');  
+    try
+        % Unselect all edges
+        L = findobj(gca,'Type','line');
+        for i=1:length(L)
+            L(i).Color = 'g';
         end
-    end
-    selNodes(iIgnore) = [];
-    nSel = length(selNodes);
-    
-    for i=1:nSel
-        Merge(selNodes(i));
-    end
- return
+        selEdges = [];
 
-function Merge(iNode)
-	global NTobj selNodes
-      
-    iEdge1 = NTobj.nodeedges(iNode,1);
-    iEdge2 = NTobj.nodeedges(iNode,2);
-    
-    %figure(newf)
-    joinEdges(iEdge1, iEdge2, iNode);
-
-%     NTobj.edgenodes(iEdge1,:) = ...
-%         [NTobj.edgenodes(iEdge1,1) NTobj.edgenodes(iEdge2,2)];
-
-    NTobj.edgenodes(iEdge2,:) =[];
-    NTobj.edgeedges(iEdge2,:,:) =[];
-    NTobj.edgelens(iEdge2) =[];
-    NTobj.edgepath(iEdge2) =[];
-    NTobj.cumedgelen(iEdge2) =[];
-    NTobj.edgewidth(iEdge2) =[];
-    NTobj.nedge = NTobj.nedge - 1;
-    
-    NTobj.nnode = NTobj.nnode - 1;
-    NTobj.degrees(iNode) = [];
-    NTobj.nodepos(iNode,:) = [];
-    NTobj.nodenodes(iNode,:) = [];
-    NTobj.nodeedges(iNode,:) = [];
-    
-%     ind = find(NTobj.nodenodes(iNodeBefore,:) == iNodeAfter);
-%     
-%     c10 = NTobj.edgenodes(iEdge1,:);
-%     c1 = c10(c10 ~= 0);
-%     iNodeAfter = c1(c1~=iNodeBefore);
-%         
-%     NTobj.nodenodes(iNodeBefore,ind) = iNodeAfter;
-
-    selNodes(selNodes==iNode) = [];
-    plotNet();
-%     redraw();
-return
-
-function joinEdges(iEdge1, iEdge2, iNode)
-    global NTobj
-    
-    p1 = NTobj.edgepath{iEdge1};
-    p2 = NTobj.edgepath{iEdge2};
-    
-    NTobj.edgepath{iEdge1} = [p1' p2(2:end,:)']';
-    
-    c1 = NTobj.cumedgelen{iEdge1};
-    c2 = NTobj.cumedgelen{iEdge2};
-    NTobj.cumedgelen{iEdge1} = [c1 c1(end)+c2(2:end)];
-    
-    NTobj.edgelens(iEdge1) = ...
-        NTobj.edgelens(iEdge1) + NTobj.edgelens(iEdge2);
-    
-    c1 = NTobj.edgewidth{iEdge1};
-    c2 = NTobj.edgewidth{iEdge2};
-    c =[];
-    
-    if ~isempty(c1)
-        c = NTobj.edgewidth{iEdge1}
-    end
-    
-    if ~isempty(c1) || ~isempty(c2)
-        if isempty(c)
-            NTobj.edgewidth{iEdge1} = NTobj.edgewidth{iEdge2};
-        else
-            NTobj.edgewidth{iEdge1} = [NTobj.edgewidth{iEdge2}' c']';
+        nSel = length(selNodes);
+        
+        % Restrict merging only for the nodes with 2 adjoined edges,
+        % unselect other nodes
+        scatter = findobj(gca,'Type','scatter');
+        iIgnore = [];
+        for i=1:nSel
+            if NTobj.degrees(selNodes(i)) ~= 2
+                iIgnore = [iIgnore i];
+                scatter.CData(selNodes(i),:) = [1 0 0];
+            end
         end
+        selNodes(iIgnore) = [];
+        nSel = length(selNodes);
+
+        % Edges involved
+        edges = [];
+        for i=1:nSel
+            edges = [edges NTobj.nodeedges(selNodes(i),1:2)];
+        end
+        edges = unique(edges);
+        nE = length(edges);
+
+        % Organize all selected nodes into chains of sequential nodes
+        chain = makeNodeChains(selNodes);
+        
+        dokeepEdge = true(1,NTobj.nedge);
+        dokeepNode = true(1,NTobj.nnode);
+        
+        % Convert each chain into a single edge
+        for iChain=1:length(chain)
+            selN = chain{iChain}.nodes;
+            dokeepNode(selN) = false;
+            
+            Nodes = reorderNodes(selN);
+            nN = length(Nodes);
+            
+            [Edges pth] = traceEdges(Nodes, edges);
+            NTobj.edgenodes(Edges(1),:) = [Nodes(1) Nodes(end)];
+
+            newpath = pth{1};
+            for i=2:length(pth)
+                newpath = [newpath(1:end-1,:); pth{i}];
+            end
+            NTobj.edgepath{Edges(1)} = newpath;
+            
+            dokeepEdge(Edges(2:end)) = false;
+        end
+        
+        keepindEdge = find(dokeepEdge);
+        keepindNode = find(dokeepNode);
+
+        NTobj.setupNetwork()
+        NTobj.keepEdges(keepindEdge);
+        NTobj.keepNodes(keepindNode);
+        
+        figure(newf)
+        plotNet();
+    catch exception
+        disp(getReport(exception))
     end
-    
-    c10 = NTobj.edgenodes(iEdge1,:);
-    c20 = NTobj.edgenodes(iEdge2,:);
-    c1 = c10(c10 ~= 0);
-    c2 = c20(c20 ~= 0);
-    iNodeBefore = c1(c1~=iNode);
-    iNodeAfter = c2(c2~=iNode);
-    
-    ind1 = find(NTobj.edgenodes(iEdge1,:) == iNode);
-    ind2 = find(NTobj.edgenodes(iEdge2,:) == iNode);
-    NTobj.edgenodes(iEdge1,ind1) = iNodeAfter - 1;
-    
-    ind = find(NTobj.nodenodes(iNodeBefore,:) == iNode);
-    NTobj.nodenodes(iNodeBefore,ind) = iNodeAfter - 1;
-    
-    ind = find(NTobj.nodenodes(iNodeAfter,:) == iNode);
-    NTobj.nodenodes(iNodeAfter,ind) = iNodeBefore;
-
+    EndAction(handles)
 return
-
-function [iNodeBefore iNodeAfter] = recountNet(iEdge1, iEdge2, iNode)
-    global NTobj
-
-return
-
-function pushbuttonMerge_CallbackOld(hObject, eventdata, handles)
-%     global newf NTobj nodeplotH selNodes guilock
-% 
-%     iSel = [];
-%     nodeplotH.PickableParts = 'all';
-%     guilock = true;
-%             
-%     figure(newf)
-%     data = findobj(gca,'Type','datatip');
-%     delete(data)
-% 
-%     display('Use datatips to select a nodes between merging edges. Then hit any keyboard key (while the figure window is active).')
-%     while true
-%         w = 1; 
-%         found = false;
-%         while w || ~found
-%             w = waitforbuttonpress;
-%             datatips = findobj(gca,'Type','datatip');
-%             found = ~isempty(datatips);
-%         end
-%         if found
-%             break;
-%         end
-%     end
-%     figure(newf)
-%     iSel = datatips.DataIndex;
-% %     delete(datatips)
-% 
-%     nodeplotH.PickableParts = 'none';
-%     guilock = false;
-% 
-%     disp(iSel)
-% return
-return
-
 
 function removeSelected()
-    global NTobj newf selNodes selEdges
+    global NTobj newf selNodes selEdges nodeplotH edgeplotH guilock
 
     if isempty(selNodes) & isempty(selEdges)
         return
     end
-
-    % remove nodes and adjacent edges to those nodes
-    if (~isempty(selNodes))
-        dokeep = true(1,NTobj.nnode);
-        dokeep(selNodes) = false;
-        keepind = find(dokeep);
-        mapold2newedge = zeros(1,NTobj.nedge);
-        [~,mapnew2oldedge] = NTobj.keepNodes(keepind);
-
-        % update index of selected edges
-        mapold2newedge(mapnew2oldedge) = 1:NTobj.nedge;
-        selEdges = mapold2newedge(selEdges);
-    end
-
-    % remove additional edges 
-    dokeep = true(1,NTobj.nedge);
-    dokeep(selEdges) = false;
-    keepind = find(dokeep);
-    NTobj.keepEdges(keepind);
-
-    selNodes = [];
-    selEdges = [];
     
-    plotNet();
-    %redraw();
-return
+%     figure(newf);
+%     guilock = true;
+%     set(gcf,'Pointer','watch');
+%     handles.signal.String = 'Removing selected...';
+    try
+        % remove nodes and adjacent edges to those nodes
+        if (~isempty(selNodes))
+            dokeep = true(1,NTobj.nnode);
+            dokeep(selNodes) = false;
+            keepind = find(dokeep);
+            mapold2newedge = zeros(1,NTobj.nedge);
+            [~,mapnew2oldedge] = NTobj.keepNodes(keepind);
 
-function removeSelected_old()
-    global NTobj newf selNodes selEdges
-    
-    if isempty(selNodes) & isempty(selEdges)
-        return
-    end
-    
-    figure(newf)
-    if ~isempty(selNodes)
-        for i=1:length(selNodes)
-            iSel = selNodes(i);
-            
-            % Remove edges stemming from this node
-            for j=1:NTobj.nnode
-                iMatch = find(NTobj.nodenodes(j,:)==iSel);
-                if ~isempty(iMatch)
-                    buf = NTobj.nodenodes(j,:);
-                    buf(iMatch) = [];
-                    NTobj.nodenodes(j,:) = [buf 0];
-                end
-            end
-            
-            for j=1:NTobj.nedge
-                iMatch = find(NTobj.edgenodes(j,:)==iSel);
-                if ~isempty(iMatch)
-                    selEdges = [selEdges j];
-                end
-            end
+            % update index of selected edges
+            mapold2newedge(mapnew2oldedge) = 1:NTobj.nedge;
+            selEdges = mapold2newedge(selEdges);
         end
-        selEdges = sort(unique(selEdges), 'descend');
-        
-        NTobj.degrees(selNodes) = [];
-        NTobj.nodepos(selNodes,:) = [];
-        NTobj.nodenodes(selNodes,:);
-        NTobj.nodeedges(selNodes,:) = [];
-        
-        NTobj.nnode = NTobj.nnode - length(selNodes);
-        selNodes=[];
-    end
-    
-    if ~isempty(selEdges)
-        NTobj.edgepath(selEdges) =[];
-        NTobj.cumedgelen(selEdges) =[];
-        NTobj.edgelens(selEdges) =[];
-        NTobj.edgeedges(selEdges,:,:) =[];
-        NTobj.edgenodes(selEdges,:) =[];
-        
-        NTobj.nedge = NTobj.nedge - length(selEdges);
+
+        % remove additional edges 
+        dokeep = true(1,NTobj.nedge);
+        dokeep(selEdges) = false;
+        keepind = find(dokeep);
+        NTobj.keepEdges(keepind);
+
+        selNodes = [];
         selEdges = [];
+        plotNet(); 
+    catch exception
+        disp(getReport(exception))
     end
     
-    redraw();
+%     handles.signal.String = '';
+%     guilock = false;
+%     figure(newf)
+%     set(gcf,'Pointer','arrow');
 return
 
 function pushbuttonRemoveSelected_Callback(hObject, eventdata, handles)
+    StartAction(handles, 'Removing selected...')
     removeSelected();
-return
-
-function redraw()
-    global newf
-    figure(newf);
-    
-    scatter = findobj(gca,'Type','scatter');
-    delete(scatter);
-    
-    Lines = findobj(gca,'Type','line');
-    delete(Lines);
-    
-    plotNet();
-%     dispNetWithImage();
+    EndAction(handles)
 return
 
 function iSel = findNearestEdge(xy)
@@ -860,57 +873,168 @@ function iSel = findNearestEdge(xy)
 return
 
 function pushbuttonEdgeWidths_Callback(hObject, eventdata, handles)
-    global newf NTobj selEdges edgeplotH
+    global newf NTobj guilock
               
     %warning('Width measurement has not been tested, is probably buggy, and should not be used.')
     %return
     
+    if (guilock)
+        disp('Cannot merge, gui is locked. Finish previous operation.')
+        ind = [];
+        return
+    end
+    
+%     set(gcf,'Pointer','watch');
+%     handles.signal.String = 'WAIT...';
+    StartAction(handles, 'Calculating edge width...')
+
     figure(newf);
     hold on
-    
-    h = drawline();
-    ep = h.Position;
-    X1 = ep(1,1); Y1 = ep(1,2); X2 = ep(2,1); Y2 = ep(2,2);
-    xy = [0.5*(X1+X2) 0.5*(Y1+Y2)];
-    iSel = findNearestEdge(xy);
-    
-    edge = NTobj.edgepath{iSel};   
-    for j=1:size(edge,1)-1
-        x1 = edge(j,1);
-        y1 = edge(j,2);
-        x2 = edge(j+1,1);
-        y2 = edge(j+1,2);
-        
-        p1 = polyfit([x1 x2], [y1 y2], 1);
-        p2 = polyfit([X1 X2], [Y1 Y2],1);
-        
-        if abs(x2-x1)<1E-10
-            xCros = x1;
-            yCros = Y1 + (xCros - X1)*(Y2 - Y1)/(X2 - X1);
-        else
-            if abs(y1-y2)<1E-10
-                yCros = y1;
-                xCros = X1 + (yCros - Y1)*(X2 - X1)/(Y2 - Y1);
+    try
+        h = drawline();
+        ep = h.Position;
+        X1 = ep(1,1); Y1 = ep(1,2); X2 = ep(2,1); Y2 = ep(2,2);
+        xy = [0.5*(X1+X2) 0.5*(Y1+Y2)];
+        iSel = findNearestEdge(xy);
+
+        edge = NTobj.edgepath{iSel};   
+        for j=1:size(edge,1)-1
+            x1 = edge(j,1);
+            y1 = edge(j,2);
+            x2 = edge(j+1,1);
+            y2 = edge(j+1,2);
+
+            p1 = polyfit([x1 x2], [y1 y2], 1);
+            p2 = polyfit([X1 X2], [Y1 Y2],1);
+
+            if abs(x2-x1)<1E-10
+                xCros = x1;
+                yCros = Y1 + (xCros - X1)*(Y2 - Y1)/(X2 - X1);
             else
-                xCros = fzero(@(x) polyval(p1-p2,x),3);
-                yCros = polyval(p1,xCros);
+                if abs(y1-y2)<1E-10
+                    yCros = y1;
+                    xCros = X1 + (yCros - Y1)*(X2 - X1)/(Y2 - Y1);
+                else
+                    xCros = fzero(@(x) polyval(p1-p2,x),3);
+                    yCros = polyval(p1,xCros);
+                end
             end
+            if (xCros-x1)*(xCros-x2)<=0 & (yCros-y1)*(yCros-y2)<=0
+                break;
+            end
+
+            plot(xCros, yCros, 'r+', 'LineWidth', 2)
         end
-        if (xCros-x1)*(xCros-x2)<=0 & (yCros-y1)*(yCros-y2)<=0
-            break;
+        hold off
+
+        w = norm([X2-X1, Y2-Y1]);
+        p = NTobj.edgepath{iSel};
+        cum = NTobj.cumedgelen{iSel};
+        d = cum(j) + norm([xCros yCros] - p(j,:));
+        if isempty(NTobj.edgewidth{iSel})
+            NTobj.edgewidth{iSel} = [w d];
+        else
+            NTobj.edgewidth{iSel} = [NTobj.edgewidth{iSel}' [w d]']';
         end
-        
-        plot(xCros, yCros, 'r+', 'LineWidth', 2)
+%         figure(newf);
+    catch exception
+        disp(getReport(exception))
+%         figure(newf);
+%         set(gcf,'Pointer','arrow');
     end
-    hold off
     
-    w = norm([X2-X1, Y2-Y1]);
-    p = NTobj.edgepath{iSel};
-    cum = NTobj.cumedgelen{iSel};
-    d = cum(j) + norm([xCros yCros] - p(j,:));
-    if isempty(NTobj.edgewidth{iSel})
-        NTobj.edgewidth{iSel} = [w d];
-    else
-        NTobj.edgewidth{iSel} = [NTobj.edgewidth{iSel}' [w d]']';
+%     set(gcf,'Pointer','arrow');
+%     handles.signal.String = '';
+    EndAction(handles)
+return
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%   UTILS
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function PickableOn(obj1, obj2, on)
+    n = length(obj1);
+    if length(obj1) ~= n
+        return;
     end
+    
+    guilock = true;
+    for i=1:n
+        obj1(i).PickableParts = 'all';
+        obj2(i).PickableParts = 'all';
+        obj1(i).HitTest = 'on';
+        obj2(i).HitTest = 'on';
+    end
+return
+
+function PickableOff(obj1, obj2, on)
+    global guilock newf
+        
+    n = length(obj1);
+    if length(obj1) ~= n
+        return;
+    end
+    
+    guilock = false;
+    figure(newf)
+    set(gcf,'Pointer','arrow');
+    for i=1:n
+        obj1(i).PickableParts = 'none';
+        obj2(i).PickableParts = 'none';
+        obj1(i).HitTest = 'off';
+        obj2(i).HitTest = 'off';
+    end
+return
+
+function imitateEnter()
+% Imitation of clicking Enter on the figure
+    global selectFirst
+    try
+        P = get(gcf, 'Position');
+        %             SS = get(0,'screensize');
+        hroot=groot;
+        set(hroot,'PointerLocation',[P(1)+10, P(2)+10]);
+        pause(2);
+        inputemu('key_normal','\ENTER');
+    catch exception
+        disp(getReport(exception))
+        selectFirst = false;
+        return
+    end
+    selectFirst = false;
+return
+
+function ActionsEnable(handles)
+    hb = findobj('Style','pushbutton');
+    for i=1:length(hb)
+        hb(i).Enable = 'On';
+    end
+    handles.sliderContrast.Enable = 'On';
+    handles.sliderBrightness.Enable = 'On';
+return
+
+function ActionsDisable(handles)
+    hb = findobj('Style','pushbutton');
+    for i=1:length(hb)
+        hb(i).Enable = 'Off';
+    end
+    handles.sliderContrast.Enable = 'Off';
+    handles.sliderBrightness.Enable = 'Off';
+return
+
+function StartAction(handles, str)
+global newf guilock
+    ActionsDisable(handles);
+    guilock = true;
+    handles.signal.String = str;
+    figure(newf)
+%     set(gcf,'Pointer','watch');
+return
+
+function EndAction(handles)
+global newf guilock
+    ActionsEnable(handles);
+    guilock = false;
+    handles.signal.String = '';
+    figure(newf)
+    set(gcf,'Pointer','Arrow');
 return
