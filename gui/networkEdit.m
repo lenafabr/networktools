@@ -61,8 +61,6 @@ selectFirst = true;
 % Update handles structure
 guidata(hObject, handles);
 
-% global locking of gui to prevent multiple selections being made at once
-
 %% set defaults
     NTobj = [];
     imgObj = [];
@@ -95,7 +93,11 @@ guidata(hObject, handles);
     hSlider2.Max = 0.5;
     guilock = false;
 
-    ActionsDisable(handles);
+    if (isempty(NTobj))
+        ActionsDisable(handles);
+    else
+        ActionsEnable(handles);
+    end
 
     % UIWAIT makes networkEdit wait for user response (see UIRESUME)
 % uiwait(handles.mainFig);
