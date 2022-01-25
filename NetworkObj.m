@@ -774,7 +774,7 @@ methods
          
          dttemplateset = false;
          if (opt.plotedges)
-             for ec = 1:length(edgenodes)
+             for ec = 1:size(edgenodes,1)
                  if (~isempty(NT.edgepath) & opt.plotedgepath)
                      % plot curved paths of the edges
                      path = NT.edgepath{ec};
