@@ -7,11 +7,18 @@ img = img(:,:,1);
 
 load('../dendriticmito/imgData/6.211020-HS_brain9_25min_network.mat','NT')
 
+%%
+load('~/proj/dendriticmito/results/workspace_filteredNT_20210817.mat')
+imgfilename = '~/proj/dendriticmito/data/MCFO-HSN-A61-2.tif';
+img = imread(imgfilename);
+
+
+
 %% visualize
 
 plotopt = struct('nodesize',20,'nodecolor',[1 0 0],'datatipindex',true)
 plotopt.edgeplotopt = {'LineWidth',1,'Color','g'};
-%
+%%
 % superimpose network on image
 % replace img with bwimg if you want to see how the network compares to the
 % segmented image it was calculated from

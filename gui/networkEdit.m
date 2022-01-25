@@ -82,6 +82,11 @@ guidata(hObject, handles);
     selEdges = [];
     if (~isempty(NTobj))
         NTobj.edgewidth = cell(NTobj.nedge,1);
+        % reset edgevals
+        NTobj.edgevals={};
+        for ec = 1:NTobj.nedge
+            NTobj.edgevals{ec} = [];
+        end
         dispNetWithImage();
     end
 
