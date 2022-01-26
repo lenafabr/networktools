@@ -938,10 +938,9 @@ function pushbuttonEdgeWidths_Callback(hObject, eventdata, handles)
             end
             if (xCros-x1)*(xCros-x2)<=0 & (yCros-y1)*(yCros-y2)<=0
                 break;
-            end
-
-            plot(xCros, yCros, 'r+', 'LineWidth', 2)
-        end
+            end            
+        end        
+        %plot(xCros, yCros, 'r+', 'LineWidth', 2)
         hold off
 
         w = norm([X2-X1, Y2-Y1]);
