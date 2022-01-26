@@ -466,6 +466,7 @@ return
 function iSel = selectEdge(color)
     global newf NTobj selEdges edgeplotH guilock selectFirst
     
+    figure(newf)
     L = findobj(gca,'Type','line');
     PickableOn(edgeplotH, L);
     try
@@ -501,7 +502,7 @@ function iSel = selectEdge(color)
             end
 
             delete(datatips)
-            selEdges = [selEdges iSel];
+            %selEdges = [selEdges iSel];
         end
     catch exception
         disp(getReport(exception))
@@ -512,7 +513,7 @@ function iSel = selectEdge(color)
 return
 
 function pushbuttonSelectEdge_Callback(hObject, eventdata, handles)
-    global guilock
+    global guilock selEdges
     if (guilock)
         disp('Cannot select edges, gui is locked. Finish previous operation.')
         return
@@ -520,6 +521,7 @@ function pushbuttonSelectEdge_Callback(hObject, eventdata, handles)
     StartAction(handles, "Use datatips to select edges. Then hit Enter to complete, Esc to cancel")
     set(gcf,'Pointer','Arrow');
     iSel = selectEdge('b');
+    selEdges = [selEdges iSel];
     EndAction(handles)
 return
 
