@@ -598,6 +598,14 @@ function pushbuttonAddEdge_Callback(hObject, eventdata, handles)
         hold off
         edgeplotH(i).addprop('edgeind');
         edgeplotH(i).edgeind = i;
+        
+        dttemplate = edgeplotH(i).DataTipTemplate;
+        dttemplate.FontSize=6;
+        dttemplate.DataTipRows(1).Value = i*ones(size(NTobj.edgepath{i},1),1);
+        dttemplate.DataTipRows(1).Label = '';
+        dttemplate.DataTipRows(2:end) = [];
+        dttemplateset = true;
+        
     catch exception
         disp(getReport(exception))
     end
