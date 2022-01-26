@@ -448,8 +448,8 @@ function pushbuttonAddNode_Callback(hObject, eventdata, handles)
         nnode = NTobj.nnode;
         NTobj.nodepos(nnode,:) = xy';
         NTobj.degrees(nnode) = 0;
-        NTobj.nodenodes(nnode,:) = [0 0 0 0];
-        NTobj.nodeedges(nnode,:) = [0 0 0 0];
+        NTobj.nodenodes(nnode,:) = 0;
+        NTobj.nodeedges(nnode,:) = 0;
 
         plotNet();
     catch exception
