@@ -910,43 +910,35 @@ function pushbuttonEdgeWidths_Callback(hObject, eventdata, handles)
     try
         h = drawline();
         ep = h.Position;
+        
         X1 = ep(1,1); Y1 = ep(1,2); X2 = ep(2,1); Y2 = ep(2,2);
         xy = [0.5*(X1+X2) 0.5*(Y1+Y2)];
+        % find nearest edge to center point of drawn segment
         iSel = findNearestEdge(xy);
-
-        edge = NTobj.edgepath{iSel};   
-        for j=1:size(edge,1)-1
-            x1 = edge(j,1);
-            y1 = edge(j,2);
-            x2 = edge(j+1,1);
-            y2 = edge(j+1,2);
-
-            p1 = polyfit([x1 x2], [y1 y2], 1);
-            p2 = polyfit([X1 X2], [Y1 Y2],1);
-
-            if abs(x2-x1)<1E-10
-                xCros = x1;
-                yCros = Y1 + (xCros - X1)*(Y2 - Y1)/(X2 - X1);
-            else
-                if abs(y1-y2)<1E-10
-                    yCros = y1;
-                    xCros = X1 + (yCros - Y1)*(X2 - X1)/(Y2 - Y1);
-                else
-                    xCros = fzero(@(x) polyval(p1-p2,x),3);
-                    yCros = polyval(p1,xCros);
-                end
-            end
-            if (xCros-x1)*(xCros-x2)<=0 & (yCros-y1)*(yCros-y2)<=0
-                break;
-            end            
-        end        
-        %plot(xCros, yCros, 'r+', 'LineWidth', 2)
-        hold off
-
-        w = norm([X2-X1, Y2-Y1]);
-        p = NTobj.edgepath{iSel};
+        edge = NTobj.edgepath{iSel}; % path of the edge
         cum = NTobj.cumedgelen{iSel};
-        d = cum(j) + norm([xCros yCros] - p(j,:));
+        
+        % find intersection between drawn segment and edge
+        seg1 = h.Position;
+        segdiff = seg1(2,:)-seg1(1,:);
+        w = norm(segdiff);
+        
+        for j = 1:size(edge,1)-1
+            seg2 = edge(j:j+1,:);
+            [t1,t2,intpt,doint] = segsegintersect(seg1', seg2');
+                        
+            if doint
+                xCros = intpt(1); yCros = intpt(2);
+                d = cum(j)+norm(intpt'-edge(j,:));
+                break
+            end
+        end
+        if (~doint) % failed to find intersection
+            disp('drawn segment does not intersect the nearest edge!')
+            EndAction(handles)
+            return
+        end
+
         if isempty(NTobj.edgewidth{iSel})
             NTobj.edgewidth{iSel} = [w d];
         else
