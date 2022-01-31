@@ -22,7 +22,7 @@ function varargout = networkEdit(varargin)
 
 % Edit the above text to modify the response to help networkEdit
 
-% Last Modified by GUIDE v2.5 27-Sep-2021 11:39:00
+% Last Modified by GUIDE v2.5 30-Jan-2022 10:52:06
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -61,6 +61,10 @@ selectFirst = true;
 % Update handles structure
 guidata(hObject, handles);
 
+    % specific for AF
+%     addpath /home/matlab/Lena/networktools;
+%     addpath /home/matlab/Lena/networktools/gui;
+    
 %% set defaults
     NTobj = [];
     imgObj = [];
@@ -141,8 +145,10 @@ function LoadData()
     NTobj = NT;
     imgObj = img;
     plotoptObj = plotopt;
-    NTobj.edgewidth = cell(NT.nedge,1);
-        
+    if isempty(NTobj.edgewidth)
+        NTobj.edgewidth = cell(NT.nedge,1);
+    end
+    
     figure(1);       
     imageH = imshow(imgObj,[]);
 %     imgCData0 = imageH.CData;
@@ -619,6 +625,147 @@ function ind = findNearestNode(nodepos, xy)
     ind = find(d2 == M);       
 return
 
+function iSel = findNearestEdge(xy)
+    global NTobj
+
+    dMin = 1E20;
+    iSel =-1;
+    for i=1:NTobj.nedge
+        d = NTobj.edgepath{i} - xy;
+        d2 = d(:,1).^2 + d(:,2).^2;
+        m = min(d2);
+        if m<dMin
+            iSel = i;
+            dMin = m;
+        end
+    end
+return
+
+function [w, d, iSel] = getWidth(ep)
+    global NTobj
+    
+    w = 0;
+    d = 0;
+    iSel = -1;
+
+    X1 = ep(1,1); Y1 = ep(1,2); X2 = ep(2,1); Y2 = ep(2,2);
+    xy = [0.5*(X1+X2) 0.5*(Y1+Y2)];
+    % find nearest edge to center point of drawn segment
+    iSel = findNearestEdge(xy);
+    edge = NTobj.edgepath{iSel}; % path of the edge
+    cum = NTobj.cumedgelen{iSel};
+    
+    % find intersection between drawn segment and edge
+    seg1 = ep;
+    segdiff = seg1(2,:)-seg1(1,:);
+    w = norm(segdiff);
+    
+    for j = 1:size(edge,1)-1
+        seg2 = edge(j:j+1,:);
+        [t1,t2,intpt,doint] = segsegintersect(seg1', seg2');
+        
+        if doint
+            xCros = intpt(1); yCros = intpt(2);
+            d = cum(j)+norm(intpt'-edge(j,:));
+            break
+        end
+    end
+return
+
+function pushbuttonWidthMeas_Callback(hObject, eventdata, handles)
+    global newf NTobj guilock Hlist
+              
+    if (guilock)
+        disp('Cannot measure widths, gui is locked. Finish previous operation.')
+        ind = [];
+        return
+    end   
+    StartAction(handles, 'Calculating edge width...')
+
+    Hlist = []; 
+    % Restore saved interactive lines
+    figure(newf)
+    for i=1:length(NTobj.edgewidth)
+        if isempty(NTobj.edgewidth{i})
+            continue;
+        end
+        for j=1:size(NTobj.edgewidth{i}, 1)
+            L = images.roi.Line(gca);
+            X1 = NTobj.edgewidth{i}(j,3);
+            Y1 = NTobj.edgewidth{i}(j,4);
+            X2 = NTobj.edgewidth{i}(j,5);
+            Y2 = NTobj.edgewidth{i}(j,6);
+            L.Position = [X1 Y1; X2 Y2];
+            L.Color = 'y';
+            Hlist = [Hlist L];
+        end
+    end
+    
+    display('Measure width of desired edges. Then press ESC key (while the figure window is active)')
+        
+    % Draw new interactive lines
+    set(gcf,'CurrentCharacter','a');
+    while true
+        figure(newf)
+        h = drawline();
+        value = double(get(gcf,'CurrentCharacter'));
+        if value==27
+            break;
+        end
+        if isempty(h)
+            break;
+        end
+        h.Color = 'y';        
+        Hlist = [Hlist h];
+    end
+    
+    EndAction(handles)
+    set(handles.pushbuttonWidthCancel,'Enable','on');
+return
+
+function pushbuttonWidthCalc_Callback(hObject, eventdata, handles)
+    global NTobj Hlist
+        
+    for i=1:length(NTobj.edgewidth)
+        NTobj.edgewidth{i} = [];
+    end
+    
+    for i=1:length(Hlist)
+        if isempty(Hlist(i))
+            continue;
+        end
+        if norm(Hlist(i).Position(1,:) - Hlist(i).Position(2,:)) == 0
+            continue;
+        end
+        
+        [w, d, iSel] = getWidth(Hlist(i).Position);
+        if (iSel == -1) % failed to find intersection
+            disp('Drawn segment does not intersect the nearest edge!')
+            continue;
+        end
+        
+        if isempty(NTobj.edgewidth{iSel})
+            NTobj.edgewidth{iSel} = [w d Hlist(i).Position(1,:) Hlist(i).Position(2,:)];
+        else
+            NTobj.edgewidth{iSel} = [NTobj.edgewidth{iSel}' [w d Hlist(i).Position(1,:) Hlist(i).Position(2,:)]']';
+        end
+    end
+    
+    for i=1:length(Hlist)
+        delete(Hlist(i));
+    end
+    Hlist = [];
+    set(handles.pushbuttonWidthCancel,'Enable','off');
+return
+
+function pushbuttonWidthCancel_Callback(hObject, eventdata, handles)
+    global Hlist
+    for i=1:length(Hlist)
+        delete(Hlist(i));
+    end
+    Hlist = [];
+return
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Actions
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -870,89 +1017,6 @@ return
 function pushbuttonRemoveSelected_Callback(hObject, eventdata, handles)
     StartAction(handles, 'Removing selected...')
     removeSelected();
-    EndAction(handles)
-return
-
-function iSel = findNearestEdge(xy)
-    global NTobj
-
-    dMin = 1E20;
-    iSel =-1;
-    for i=1:NTobj.nedge
-        d = NTobj.edgepath{i} - xy;
-        d2 = d(:,1).^2 + d(:,2).^2;
-        m = min(d2);
-        if m<dMin
-            iSel = i;
-            dMin = m;
-        end
-    end
-return
-
-function pushbuttonEdgeWidths_Callback(hObject, eventdata, handles)
-    global newf NTobj guilock
-              
-    %warning('Width measurement has not been tested, is probably buggy, and should not be used.')
-    %return
-    
-    if (guilock)
-        disp('Cannot merge, gui is locked. Finish previous operation.')
-        ind = [];
-        return
-    end
-    
-%     set(gcf,'Pointer','watch');
-%     handles.signal.String = 'WAIT...';
-    StartAction(handles, 'Calculating edge width...')
-
-    figure(newf);
-    hold on
-    try
-        h = drawline();
-        ep = h.Position;
-        
-        X1 = ep(1,1); Y1 = ep(1,2); X2 = ep(2,1); Y2 = ep(2,2);
-        xy = [0.5*(X1+X2) 0.5*(Y1+Y2)];
-        % find nearest edge to center point of drawn segment
-        iSel = findNearestEdge(xy);
-        edge = NTobj.edgepath{iSel}; % path of the edge
-        cum = NTobj.cumedgelen{iSel};
-        
-        % find intersection between drawn segment and edge
-        seg1 = h.Position;
-        segdiff = seg1(2,:)-seg1(1,:);
-        w = norm(segdiff);
-        
-        for j = 1:size(edge,1)-1
-            seg2 = edge(j:j+1,:);
-            [t1,t2,intpt,doint] = segsegintersect(seg1', seg2');
-                        
-            if doint
-                xCros = intpt(1); yCros = intpt(2);
-                d = cum(j)+norm(intpt'-edge(j,:));
-                break
-            end
-        end
-        if (~doint) % failed to find intersection
-            disp('drawn segment does not intersect the nearest edge!')
-            EndAction(handles)
-            return
-        end
-
-        if isempty(NTobj.edgewidth{iSel})
-            NTobj.edgewidth{iSel} = [w d];
-        else
-            NTobj.edgewidth{iSel} = [NTobj.edgewidth{iSel}' [w d]']';
-        end
-%         figure(newf);
-    catch exception
-        disp(getReport(exception))
-%         figure(newf);
-%         set(gcf,'Pointer','arrow');
-    end
-    
-%     set(gcf,'Pointer','arrow');
-%     handles.signal.String = '';
     EndAction(handles)
 return
 
