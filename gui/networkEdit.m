@@ -85,7 +85,9 @@ guidata(hObject, handles);
     selNodes = [];
     selEdges = [];
     if (~isempty(NTobj))
-        NTobj.edgewidth = cell(NTobj.nedge,1);
+        if (isempty(NTobj.edgewidth)) 
+            NTobj.edgewidth = cell(NTobj.nedge,1);
+        end
         % reset edgevals
         NTobj.edgevals={};
         for ec = 1:NTobj.nedge
@@ -107,7 +109,9 @@ guidata(hObject, handles);
     else
         ActionsEnable(handles);
     end
-
+    
+    set(handles.pushbuttonWidthCalc,'Enable','off');
+    set(handles.pushbuttonWidthCancel,'Enable','off');
     % UIWAIT makes networkEdit wait for user response (see UIRESUME)
 % uiwait(handles.mainFig);
 
@@ -680,7 +684,8 @@ function pushbuttonWidthMeas_Callback(hObject, eventdata, handles)
         ind = [];
         return
     end   
-    StartAction(handles, 'Calculating edge width...')
+    StartAction(handles, 'Measure width of desired edges. Press Esc when done.')
+    %Calculating edge width...')
 
     Hlist = []; 
     % Restore saved interactive lines
@@ -701,31 +706,38 @@ function pushbuttonWidthMeas_Callback(hObject, eventdata, handles)
         end
     end
     
-    display('Measure width of desired edges. Then press ESC key (while the figure window is active)')
+    display('Mark widths of desired edges. Pres Esc when done.')
         
     % Draw new interactive lines
     set(gcf,'CurrentCharacter','a');
     while true
         figure(newf)
-        h = drawline();
+        h = drawline('Color',[1 0.6 0.2]);
         value = double(get(gcf,'CurrentCharacter'));
         if value==27
             break;
         end
         if isempty(h)
             break;
-        end
-        h.Color = 'y';        
+        end          
         Hlist = [Hlist h];
     end
     
     EndAction(handles)
+    
+    handles.signal.String = 'Adjust width memasurements. Hit Calculate when done';
     set(handles.pushbuttonWidthCancel,'Enable','on');
+    set(handles.pushbuttonWidthCalc,'Enable','on');
+    % do not allow any more measurements until these are calculated or
+    % cancelled
+    set(handles.pushbuttonWidthMeas,'Enable','off');
+    
 return
 
 function pushbuttonWidthCalc_Callback(hObject, eventdata, handles)
     global NTobj Hlist
         
+    handles.signal.String = 'Calculating widths...';
     for i=1:length(NTobj.edgewidth)
         NTobj.edgewidth{i} = [];
     end
@@ -755,7 +767,10 @@ function pushbuttonWidthCalc_Callback(hObject, eventdata, handles)
         delete(Hlist(i));
     end
     Hlist = [];
-    set(handles.pushbuttonWidthCancel,'Enable','off');
+    handles.signal.String = '';
+    set(handles.pushbuttonWidthCancel,'Enable','off');  
+    set(handles.pushbuttonWidthCalc,'Enable','off'); 
+    set(handles.pushbuttonWidthMeas,'Enable','on');
 return
 
 function pushbuttonWidthCancel_Callback(hObject, eventdata, handles)
@@ -764,6 +779,10 @@ function pushbuttonWidthCancel_Callback(hObject, eventdata, handles)
         delete(Hlist(i));
     end
     Hlist = [];
+    
+    set(handles.pushbuttonWidthMeas,'Enable','on');
+    set(handles.pushbuttonWidthCalc,'Enable','off');
+    set(handles.pushbuttonWidthCancel,'Enable','off');
 return
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
