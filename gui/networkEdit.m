@@ -62,8 +62,8 @@ selectFirst = true;
 guidata(hObject, handles);
 
     % specific for AF
-%     addpath /home/matlab/Lena/networktools;
-%     addpath /home/matlab/Lena/networktools/gui;
+    addpath /home/matlab/Lena/networktools;
+    addpath /home/matlab/Lena/networktools/gui;
     
 %% set defaults
     NTobj = [];
@@ -443,31 +443,58 @@ function pushbuttonSelArea_Callback(hObject, eventdata, handles)
 return
 
 function pushbuttonAddNode_Callback(hObject, eventdata, handles)
-    global newf NTobj selNodes
+    global newf NTobj nodeplotH edgeplotH
     
+    StartAction(handles, ...
+        'Click on positions of desired nodes. To finish click any button')
     try
-        figure(newf);
-
-        roi = drawpoint;
-        xy = roi.Position;
-        delete(roi);
-        set(gcf,'Pointer','watch');
+        P = []; H=[];
+        set(gcf,'CurrentCharacter','a');
+        i=0;
+        while true
+            h = drawpoint;
+            
+            value = double(get(gcf,'CurrentCharacter'));
+            if value==27
+                break;
+            end
+            if isempty(h)
+                break;
+            end  
+            i = i+1;
+            P{i} = h.Position;
+            H = [H h];
+        end
+        set(gcf,'Pointer','arrow');
+       
+        for i=1:length(P)
+            NTobj.nnode = NTobj.nnode + 1;
+            nnode = NTobj.nnode;
+            NTobj.nodepos(nnode,:) = P{i}';
+            NTobj.degrees(nnode) = 0;
+            NTobj.nodenodes(nnode,:) = 0;
+            NTobj.nodeedges(nnode,:) = 0;
+            P{i} = [];
+            delete(H(i));
+        end
+        P=[]; H=[];
         handles.signal.String = 'WAIT...';
-
-        NTobj.nnode = NTobj.nnode + 1;
-        nnode = NTobj.nnode;
-        NTobj.nodepos(nnode,:) = xy';
-        NTobj.degrees(nnode) = 0;
-        NTobj.nodenodes(nnode,:) = 0;
-        NTobj.nodeedges(nnode,:) = 0;
-
         plotNet();
+        
+        L = findobj(gca,'Type','line');
+        for i=1:length(L)
+            L(i).PickableParts = 'none';
+            L(i).HitTest = 'off';
+        end
+        S = findobj(gca,'Type','scatter');
+        for i=1:length(S)
+            S(i).PickableParts = 'none';
+            S(i).HitTest = 'off';
+        end
     catch exception
         disp(getReport(exception))
     end
-    figure(newf)
-    set(gcf,'Pointer','arrow');
-    handles.signal.String = '';
+    EndAction(handles)
 return
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -724,14 +751,13 @@ function pushbuttonWidthMeas_Callback(hObject, eventdata, handles)
     end
     
     EndAction(handles)
-    
+        
     handles.signal.String = 'Adjust width memasurements. Hit Calculate when done';
     set(handles.pushbuttonWidthCancel,'Enable','on');
     set(handles.pushbuttonWidthCalc,'Enable','on');
     % do not allow any more measurements until these are calculated or
     % cancelled
-    set(handles.pushbuttonWidthMeas,'Enable','off');
-    
+    set(handles.pushbuttonWidthMeas,'Enable','off');    
 return
 
 function pushbuttonWidthCalc_Callback(hObject, eventdata, handles)
