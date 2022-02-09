@@ -470,6 +470,7 @@ methods
             end
         end
         
+        %G = NT.network2Graph()               
         paths = cyclebasis(adjmat,'path');
         %
         edgepaths = NT.nodepaths2edgepaths(paths);
@@ -747,12 +748,21 @@ methods
          % show data tips as edge or node index
          opt.datatipindex = false;
          % scaling factor
-         opt.scl = 1;
+         opt.scl = 1;                  
          
          if (exist('options','var'))
+             
+             if (isfield(options,'plotoverimage') & options.plotoverimage)
+                 % reset defaults for plotting over a BW image
+                 opt.nodesize =20;
+                 opt.nodecolor = [1 0 0]                 
+                 opt.edgeplotopt = {'LineWidth',1,'Color','g'};
+            end
+             
              opt =copyStruct(options,opt,1);
          end
-                           
+                      
+         
          if (length(opt.nodesize)==1)
              opt.nodesize = opt.nodesize*ones(NT.nnode,1);
          end
