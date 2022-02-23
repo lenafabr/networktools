@@ -443,7 +443,7 @@ function pushbuttonAddNode_Callback(hObject, eventdata, handles)
     global newf NTobj nodeplotH edgeplotH
     
     StartAction(handles, ...
-        'Click on positions of desired nodes. To finish click any button')
+        'Click on positions of desired nodes. To finish hit Esc.')
     try
         P = []; H=[];
         set(gcf,'CurrentCharacter','a');
