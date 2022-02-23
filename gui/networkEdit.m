@@ -61,9 +61,6 @@ selectFirst = true;
 % Update handles structure
 guidata(hObject, handles);
 
-    % specific for AF
-    addpath /home/matlab/Lena/networktools;
-    addpath /home/matlab/Lena/networktools/gui;
     
 %% set defaults
     NTobj = [];
