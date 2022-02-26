@@ -198,21 +198,29 @@ methods
         NT.edgenodes = newedgenodes;
     end
     
-    function connectNodeNearest(NT,pos)
-        % connect a new node at position pos
-        % to the nearest edge in the network
+    function [mindist,minec,minfrac,minpt] = getNearestEdge(NT,pos)
+        % get nearest position along edge to a particular point
         
-        % find nearest segment
-        mindist = inf;
+         mindist = inf;
         for ec = 1:NT.nedge
             n1 = NT.edgenodes(ec,1); n2 = NT.edgenodes(ec,2);
             [dist(ec),frac(ec),ptnear(ec,:)] = ptlinesegdist(pos,NT.nodepos(n1,:),NT.nodepos(n2,:));
             
-            if (dist(ec)<mindist)
+            if (dist(ec)<mindist)                
+                minec = ec;  
                 mindist = dist(ec);
-                minec = ec;
-            end
-        end
+            end            
+        end        
+        minfrac = frac(minec);
+        minpt = ptnear(minec,:);
+    end
+    
+    function connectNodeNearest(NT,pos)
+        % connect a new node at position pos
+        % to the nearest edge in the network
+        
+        [mindist,minec,minfrac,minpt] = getNearestEdge(NT,pos);
+        
         
         % create new node along segment
         n1 = NT.edgenodes(minec,1); n2 = NT.edgenodes(minec,2);

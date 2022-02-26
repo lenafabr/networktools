@@ -53,6 +53,9 @@ function networkEdit_OpeningFcn(hObject, eventdata, handles, varargin)
 % varargin   command line arguments to networkEdit (see VARARGIN)
     global newf NTobj imgObj plotoptObj selNodes selEdges guilock
     global selectFirst
+    % index mapping from the current network to the plotted elements
+    global nodenet2plot edgenet2plot
+    
 % Choose default command line output for networkEdit
 handles.output = hObject;
 selectFirst = true;
@@ -93,6 +96,8 @@ guidata(hObject, handles);
         dispNetWithImage();
     end
 
+   
+    
     hSlider1 = findobj('Tag', 'sliderContrast');
     hSlider1.Min = 0;
     hSlider1.Max = 4;
@@ -195,7 +200,7 @@ function menuQuit_Callback(hObject, eventdata, handles)
 return
 
 function dispNetWithImage()
-global newf NTobj imgObj plotoptObj nodeplotH edgeplotH imageH selNodes;
+global newf NTobj imgObj plotoptObj nodeplotH edgeplotH imageH selNodes nodenet2plot edgenet2plot
     try
         delete(nodeplotH)
         for lc = 1:length(edgeplotH)
@@ -250,6 +255,10 @@ global newf NTobj imgObj plotoptObj nodeplotH edgeplotH imageH selNodes;
     if (~imageexists)
         set(gca,'Position',[0,0,1,1])
     end
+    
+    % initialize mapping of network nodes/edges to plotted elements
+    nodenet2plot = 1:NTobj.nnode;
+    edgenet2plot = 1:NTobj.nedge;
 return
 
 function plotNet()
@@ -267,6 +276,9 @@ function plotNet()
     plotoptObj.datatipindex = true;
     [nodeplotH,edgeplotH] = NTobj.plotNetwork(plotoptObj);
     hold off
+    
+    nodenet2plot = 1:NTobj.nnode;
+    edgenet2plot = 1:NTobj.nedge;
 return
 
 function sliderContrast_Callback(hObject, eventdata, handles)
@@ -374,14 +386,40 @@ function ind = selectNode(addSelected, color)
 return
     
 function pushbuttonSelectNode_Callback(hObject, eventdata, handles)
-    global guilock
+    global guilock NTobj newf selNodes
+    
     if (guilock)
         disp('Cannot select nodes, gui is locked. Finish previous operation.')
         return
     end
-    StartAction(handles, "Use datatips to select nodes. Then hit Enter to complete, Esc to cancel")
-    set(gcf,'Pointer','Arrow');
-    ind = selectNode(true, [0 0 1]);
+    StartAction(handles, "Pick points to select desired nodes. Hit Esc when done.")
+    %set(gcf,'Pointer','Arrow');
+    %ind = selectNode(true, [0 0 1]);   
+    
+    figure(newf)
+    
+    [P,H]= selectMultiplePoints();
+    
+    % get all the roi points, including the ones drawn previously
+    H = findobj(gca,'Type','images.roi.Point');
+    goodpt = false(length(H),1);
+    for pc = 1:length(H)
+        goodpt(pc) = ~isempty(H(pc).Position);
+    end
+    H = H(goodpt);    
+    P = vertcat(H.Position);
+    
+    % find the nodes closest to the selected points
+    if (~isempty(P))
+    selNodes = knnsearch(NTobj.nodepos,P);
+    
+    % snap draggable node positions to the network
+    for pc = 1:length(H)
+        H(pc).Position = NTobj.nodepos(selNodes(pc),:);
+    end
+    end
+    
+    
     EndAction(handles)
 return
 
@@ -426,57 +464,42 @@ function pushbuttonSelArea_Callback(hObject, eventdata, handles)
     [in on] = inpolygon(x,y, xp,yp);
     delete(roi);
     
-    ind = find(in);
-    scatter = findobj(gca,'Type','scatter');
-    for i=1:length(ind)
-        scatter.CData(ind(i),:) = [0 0 1];
-    end
-
-    selNodes = [selNodes ind'];
-    selNodes = unique(selNodes);
+    % make roi points on the selected nodes
+    selNodes = find(in);
     
-    %removeSelected();
+    for pc = 1:length(selNodes)
+        drawpoint('Position',NTobj.nodepos(selNodes(pc),:));
+    end
+    
     hold off
 return
 
 function pushbuttonAddNode_Callback(hObject, eventdata, handles)
-    global newf NTobj nodeplotH edgeplotH
+    global newf NTobj nodeplotH edgeplotH nodenet2plot
     
     StartAction(handles, ...
         'Click on positions of desired nodes. To finish hit Esc.')
     try
-        P = []; H=[];
-        set(gcf,'CurrentCharacter','a');
-        i=0;
-        while true
-            h = drawpoint;
-            
-            value = double(get(gcf,'CurrentCharacter'));
-            if value==27
-                break;
-            end
-            if isempty(h)
-                break;
-            end  
-            i = i+1;
-            P{i} = h.Position;
-            H = [H h];
-        end
+        [P,H]= selectMultiplePoints();
+        
         set(gcf,'Pointer','arrow');
        
-        for i=1:length(P)
-            NTobj.nnode = NTobj.nnode + 1;
-            nnode = NTobj.nnode;
-            NTobj.nodepos(nnode,:) = P{i}';
-            NTobj.degrees(nnode) = 0;
-            NTobj.nodenodes(nnode,:) = 0;
-            NTobj.nodeedges(nnode,:) = 0;
-            P{i} = [];
+        for i = 1:length(P)
+            connect{i} = [];
             delete(H(i));
         end
-        P=[]; H=[];
+        NTobj.addNodes(P,connect)
+                
         handles.signal.String = 'WAIT...';
-        plotNet();
+        %plotNet();
+        
+        % replot scatter points only
+        delete(nodeplotH);
+        hold all
+        cols = [ones(NTobj.nnode,1) zeros(NTobj.nnode,2)];
+        nodeplotH = scatter(NTobj.nodepos(:,1),NTobj.nodepos(:,2),20*ones(1,NTobj.nnode),cols,'filled');
+        hold off
+        nodenet2plot = 1:NTobj.nnode;
         
         L = findobj(gca,'Type','line');
         for i=1:length(L)
@@ -494,56 +517,61 @@ function pushbuttonAddNode_Callback(hObject, eventdata, handles)
     EndAction(handles)
 return
 
+function [P,H]= selectMultiplePoints()
+    % select multiple points
+    % for node selection or adding new nodes
+    % returns position coords in P and handles in H    
+    try
+        P = []; H=[];
+        
+        i=0;
+        while true
+            h = drawpoint;
+            
+            if isempty(h.Position)
+                break;
+            end  
+            i = i+1;
+            P(i,:) = h.Position;
+            H = [H h];
+        end
+        set(gcf,'Pointer','arrow');
+    catch exception
+        disp(getReport(exception))
+    end    
+return
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Manage edges
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function iSel = selectEdge(color)
     global newf NTobj selEdges edgeplotH guilock selectFirst
     
-    figure(newf)
-    L = findobj(gca,'Type','line');
-    PickableOn(edgeplotH, L);
     try
         figure(newf)
-%         if selectFirst
-%             imitateEnter()
-%         end
-
         iSel=[];  
-        w = 0;
-        display('Select desired edges. Then press any keyboard key (while the figure window is active)')
+      
+        display('Select points marking desired edges. Press escape when done.')
         
-        while ~w
-            w = waitforbuttonpress;
-        end
-
-        figure(newf)
-        datatips = findobj(gca,'Type','datatip');
+        [P,H] = selectMultiplePoints();
         
-        % Cancel selection if 'Esc' hit
-        value = double(get(gcf,'CurrentCharacter'));
-        if value==27
-            delete(datatips)
-            PickableOff(edgeplotH, L);
-            return
+        % figure which edges are nearest selected points
+        for pc = 1:size(P,1)
+            [mindist,minec,minfrac,minpt] = NTobj.getNearestEdge(P(pc,:));
+            
+            iSel(end+1) = minec;
+            
+            % mark selected edge with roi polyline
+            drawpolyline('Position',NTobj.edgepath{minec},'Color','b','InteractionsAllowed','none')
+            
+            % remove the original drawn point
+            delete(H(pc))
         end
-
-        if ~isempty(datatips)
-            for idt=1:length(datatips)
-                Ln = datatips(idt).Parent;
-                Ln.Color = color;
-                iSel = [iSel Ln.edgeind];
-            end
-
-            delete(datatips)
-            %selEdges = [selEdges iSel];
-        end
+        
     catch exception
         disp(getReport(exception))
     end
-    figure(newf)
-    L = findobj(gca,'Type','line');
-    PickableOff(edgeplotH, L);
+    
 return
 
 function pushbuttonSelectEdge_Callback(hObject, eventdata, handles)
@@ -552,7 +580,7 @@ function pushbuttonSelectEdge_Callback(hObject, eventdata, handles)
         disp('Cannot select edges, gui is locked. Finish previous operation.')
         return
     end
-    StartAction(handles, "Use datatips to select edges. Then hit Enter to complete, Esc to cancel")
+    StartAction(handles, "Click on (or near) desired edges to select. Hit Esc to finish.")
     set(gcf,'Pointer','Arrow');
     iSel = selectEdge('b');
     selEdges = [selEdges iSel];
@@ -582,7 +610,7 @@ function pushbuttonUnselectAllEdges_Callback(hObject, eventdata, handles)
 return
 
 function pushbuttonAddEdge_Callback(hObject, eventdata, handles)
-    global newf NTobj edgeplotH guilock
+    global newf NTobj edgeplotH guilock edgenet2plot
     
     if (guilock)
         disp('Cannot draw new edge, gui is locked. Finish previous operation')
@@ -621,6 +649,8 @@ function pushbuttonAddEdge_Callback(hObject, eventdata, handles)
         NTobj.setCumEdgeLen(i,true);
         NTobj.edgevals{i} = [];
         NTobj.edgewidth{i} = [];
+        
+        edgenet2plot(NTobj.nedge) = max(edgenet2plot)+1;
 
        % CLF = hypot(diff(x), diff(y));   % Calculate integrand from x,y derivatives
        % NTobj.edgelens(i) = trapz(CLF); % Integrate to calculate arc length
@@ -633,12 +663,12 @@ function pushbuttonAddEdge_Callback(hObject, eventdata, handles)
         edgeplotH(i).addprop('edgeind');
         edgeplotH(i).edgeind = i;
         
-        dttemplate = edgeplotH(i).DataTipTemplate;
-        dttemplate.FontSize=6;
-        dttemplate.DataTipRows(1).Value = i*ones(size(NTobj.edgepath{i},1),1);
-        dttemplate.DataTipRows(1).Label = '';
-        dttemplate.DataTipRows(2:end) = [];
-        dttemplateset = true;
+%         dttemplate = edgeplotH(i).DataTipTemplate;
+%         dttemplate.FontSize=6;
+%         dttemplate.DataTipRows(1).Value = i*ones(size(NTobj.edgepath{i},1),1);
+%         dttemplate.DataTipRows(1).Label = '';
+%         dttemplate.DataTipRows(2:end) = [];
+%         dttemplateset = true;
         
     catch exception
         disp(getReport(exception))
@@ -656,7 +686,7 @@ return
 function iSel = findNearestEdge(xy)
     global NTobj
 
-    dMin = 1E20;
+    dMin = inf;
     iSel =-1;
     for i=1:NTobj.nedge
         d = NTobj.edgepath{i} - xy;
@@ -1013,42 +1043,103 @@ function pushbuttonMerge_Callback(hObject, eventdata, handles)
 return
 
 function removeSelected()
-    global NTobj newf selNodes selEdges nodeplotH edgeplotH guilock
+    global NTobj newf selEdges nodeplotH edgeplotH guilock nodenet2plot edgenet2plot
 
-    if isempty(selNodes) & isempty(selEdges)
+    figure(newf)    
+    
+    %% check node numbering in plot and network
+    for pc = 1:NTobj.nnode
+        ind = nodenet2plot(pc);
+        diffval = norm(NTobj.nodepos(pc,:) - [nodeplotH.XData(ind), nodeplotH.YData(ind)]);
+        if (diffval>1e-10)
+            disp([pc diffval])
+            error('Network node data and plotted scatter plot indexing have become mismatched. Something is broken. ')
+        end
+    end
+    
+    
+    % selected node handles
+    nodeH = findobj(gca, 'Type','images.roi.Point');
+    selnodepos = vertcat(nodeH.Position);
+   
+    
+    if (isempty(nodeH) & isempty(selEdges))
+        disp('No nodes or edges selected to remove')
         return
     end
+    
+   
     
 %     figure(newf);
 %     guilock = true;
 %     set(gcf,'Pointer','watch');
 %     handles.signal.String = 'Removing selected...';
-    try
+   % try
         % remove nodes and adjacent edges to those nodes
-        if (~isempty(selNodes))
+        if (size(selnodepos,1)>0)         
+             selNodes = knnsearch(NTobj.nodepos,selnodepos);
+    
+            nedge0 = NTobj.nedge;
+            stillthere = false(1,nedge0);
+            
+            
             dokeep = true(1,NTobj.nnode);
             dokeep(selNodes) = false;
             keepind = find(dokeep);
             mapold2newedge = zeros(1,NTobj.nedge);
-            [~,mapnew2oldedge] = NTobj.keepNodes(keepind);
+            [mapold2new,mapnew2oldedge] = NTobj.keepNodes(keepind);
 
+            tmp = mapold2new(keepind);            
+            mapnew2oldnode(tmp) = keepind;
+            
+            % make removed nodes invisible
+            nodeplotH.SizeData(nodenet2plot(selNodes)) = nan;
+            
+            % which edges are still there, and which got removed
+            stillthere(mapnew2oldedge) = true;
+            rmedges = find(~stillthere);
+            
+            % make removed edges not show
+            for ec = 1:length(rmedges)
+                edgeplotH(edgenet2plot(rmedges(ec))).LineStyle = 'none';
+            end
+            
+            % update mapping from new network node/edges to plot elements
+            edgenet2plot = edgenet2plot(mapnew2oldedge);
+            nodenet2plot = nodenet2plot(mapnew2oldnode);
+            
             % update index of selected edges
             mapold2newedge(mapnew2oldedge) = 1:NTobj.nedge;
             selEdges = mapold2newedge(selEdges);
+            selEdges = selEdges(selEdges>0);
         end
 
         % remove additional edges 
         dokeep = true(1,NTobj.nedge);
         dokeep(selEdges) = false;
         keepind = find(dokeep);
-        NTobj.keepEdges(keepind);
-
+        mapnew2oldedge = NTobj.keepEdges(keepind);
+       
+        % make removed edges not show
+        for ec = 1:length(selEdges)
+            edgeplotH(edgenet2plot(selEdges(ec))).LineStyle = 'none';
+        end
+                
         selNodes = [];
         selEdges = [];
-        plotNet(); 
-    catch exception
-        disp(getReport(exception))
-    end
+        
+        edgenet2plot = edgenet2plot(mapnew2oldedge);
+        
+   % catch exception
+   %     disp(getReport(exception))
+   % end
+    
+    % delete marked node handles
+    delete(nodeH);
+    
+    % delete selected edge handles
+    edgeH = findobj(gca,'Type','images.roi.PolyLine');
+    delete(edgeH);
     
 %     handles.signal.String = '';
 %     guilock = false;
@@ -1057,7 +1148,7 @@ function removeSelected()
 return
 
 function pushbuttonRemoveSelected_Callback(hObject, eventdata, handles)
-    StartAction(handles, 'Removing selected...')
+    StartAction(handles, 'Removing selected...')        
     removeSelected();
     EndAction(handles)
 return

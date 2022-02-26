@@ -1,7 +1,7 @@
 %% testing network guis
 
-load('/UCSD/proj/dendriticmito/results/workspace_filteredNT_20210817.mat')
-imgfilename = '~/proj/dendriticmito/data/MCFO-HSN-A61-2.tif';
+load('~/UCSD/proj/dendriticmito/results/workspace_filteredNT_20210817.mat')
+imgfilename = '~/UCSD/proj/dendriticmito/data/MCFO-HSN-A61-2.tif';
 img = imread(imgfilename);
 filteredNT.edgevals={};
 for ec = 1:filteredNT.nedge
