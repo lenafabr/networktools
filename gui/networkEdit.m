@@ -423,25 +423,13 @@ function pushbuttonSelectNode_Callback(hObject, eventdata, handles)
     EndAction(handles)
 return
 
-function pushbuttonUnselectNode_Callback(hObject, eventdata, handles)
-    global selNodes
-
-    iSel = selectNode(false, [1 0 0]);
-    
-    if ~isempty(iSel)
-         [val, iRem, iInd] = intersect(selNodes, iSel);
-         selNodes(iRem) = [];         
-    end
-return
-
 function pushbuttonUnselectAllNodes_Callback(hObject, eventdata, handles)
     global newf selNodes
         
     figure(newf)
-    scatter = findobj(gca,'Type','scatter');
-    for i=1:length(selNodes)
-        scatter.CData(selNodes(i),:) = [1 0 0];
-    end
+    nodeH = findobj(gca,'Type','images.roi.Point');
+    delete(nodeH)
+    
     selNodes = []; 
 return
 
@@ -560,10 +548,7 @@ function iSel = selectEdge(color)
             [mindist,minec,minfrac,minpt] = NTobj.getNearestEdge(P(pc,:));
             
             iSel(end+1) = minec;
-            
-            % mark selected edge with roi polyline
-            drawpolyline('Position',NTobj.edgepath{minec},'Color','b','InteractionsAllowed','none')
-            
+                        
             % remove the original drawn point
             delete(H(pc))
         end
@@ -575,37 +560,43 @@ function iSel = selectEdge(color)
 return
 
 function pushbuttonSelectEdge_Callback(hObject, eventdata, handles)
-    global guilock selEdges
+    global guilock selEdges NTobj
     if (guilock)
         disp('Cannot select edges, gui is locked. Finish previous operation.')
         return
     end
     StartAction(handles, "Click on (or near) desired edges to select. Hit Esc to finish.")
     set(gcf,'Pointer','Arrow');
+    
+    isselected = false(1,NTobj.nedge);
+    isselected(selEdges) = true;
+    
     iSel = selectEdge('b');
-    selEdges = [selEdges iSel];
+    % flip selection state of the picked edges (either selects or
+    % unselects)     
+    isselected(iSel) = ~isselected(iSel);
+    selEdges = find(isselected);
+    
+    % get rid of prior polylines
+    tmp= findobj(gca,'Type','images.roi.PolyLine');
+    delete(tmp);
+    
+    % mark selected edges with roi polyline
+    for ec = selEdges
+        drawpolyline('Position',NTobj.edgepath{ec},'Color','b','InteractionsAllowed','none');
+    end
+    
     EndAction(handles)
 return
 
-function pushbuttonUnselectEdge_Callback(hObject, eventdata, handles)
-    global selEdges
-    
-    iSel = selectEdge('g');
-    
-    if ~isempty(iSel)
-        [val, iRem, iInd] = intersect(selEdges, iSel);
-        selEdges(iRem) = [];
-    end
-return
 
 function pushbuttonUnselectAllEdges_Callback(hObject, eventdata, handles)
     global newf selEdges
 
     figure(newf)
-    L = findobj(gca,'Type','line');
-    for i=1:length(L)
-        L(i).Color = 'g';
-    end
+    L = findobj(gca,'Type','images.roi.PolyLine');
+    delete(L);
+    
     selEdges = [];
 return
 
@@ -1059,16 +1050,18 @@ function removeSelected()
     
     
     % selected node handles
-    nodeH = findobj(gca, 'Type','images.roi.Point');
-    selnodepos = vertcat(nodeH.Position);
-   
+    nodeH = findobj(gca, 'Type','images.roi.Point');       
     
     if (isempty(nodeH) & isempty(selEdges))
         disp('No nodes or edges selected to remove')
         return
     end
     
-   
+    if (isempty(nodeH))
+        selnodepos = [];
+    else
+        selnodepos = vertcat(nodeH.Position);
+    end
     
 %     figure(newf);
 %     guilock = true;
