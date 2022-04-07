@@ -8,6 +8,7 @@ function [NT,skelimage,opt] = getNetworkFromBWImage(bwimg,options)
 % output: 
 % NT = network structure
 % skelimage = skeletonized image;
+% Updated EFK 4/7/2022
 
 %% default options
 opt = struct();
