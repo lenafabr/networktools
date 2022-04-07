@@ -472,7 +472,7 @@ function pushbuttonAddNode_Callback(hObject, eventdata, handles)
         
         set(gcf,'Pointer','arrow');
        
-        for i = 1:length(P)
+        for i = 1:size(P,1)
             connect{i} = [];
             delete(H(i));
         end
@@ -670,8 +670,8 @@ return
 function ind = findNearestNode(nodepos, xy)
     dNodes = nodepos - xy;
     d2 = dNodes(:,1).^2 + dNodes(:,2).^2;
-    M = min(d2);
-    ind = find(d2 == M);       
+    [M,ind] = min(d2);
+    %ind = find(d2 == M);       
 return
 
 function iSel = findNearestEdge(xy)

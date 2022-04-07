@@ -796,6 +796,7 @@ methods
                  if (~isempty(NT.edgepath) & opt.plotedgepath)
                      % plot curved paths of the edges
                      path = NT.edgepath{ec};
+                     if (isempty(path)); continue; end
                      if (dim==2)
                          edgeplotH(ec) = plot(path(:,1)*scl,path(:,2)*scl,'Color',opt.edgecolor(ec,:),opt.edgeplotopt{:});
                      else

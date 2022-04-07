@@ -49,6 +49,7 @@ if (opt.dodisplay>1) % show nodes on skeleton image
     hold all
     plot(nodepoints(:,1),nodepoints(:,2),'co')
     hold off
+    title('skeletonized image and nodes')
     drawnow
 end
     
@@ -62,7 +63,14 @@ edgesize = cellfun(@(x) length(x),comp.PixelIdxList);
 
 
 %% group directly connected nodes together
+
+allnodes = find(nodeimg(:)); % pixel indices of all nodes
+% x and y coords of all nodes
+[allnodex,allnodey] = ind2sub(size(skelimage),allnodes);
+
 compnodes = bwconncomp(nodeimg,4);
+
+whichnodegroup = zeros(length(skelimage(:)),1);
 
 for cc = 1:compnodes.NumObjects
     pix = compnodes.PixelIdxList{cc};
@@ -73,17 +81,29 @@ for cc = 1:compnodes.NumObjects
         nodegroup(cc,1) = mean(x);
         nodegroup(cc,2) = mean(y);
     end
+    
+    % which node group each pixel belongs to
+    whichnodegroup(pix) = cc;
 end
 
 %% get rid of redundant nodes
 duplicatenodes = false(size(nodegroup,1),1);
+map2newgroup = 1:size(nodegroup,1);
 for ncc = 1:size(nodegroup,1)-1
     diffs = nodegroup(ncc+1:end,:)-nodegroup(ncc,:);
     dist = sum(diffs.^2,2);
     badind = find(dist==0);
     duplicatenodes(ncc+badind) = true;
+    map2newgroup(duplicatenodes(ncc+badind)) = ncc;
 end
+new2oldgroup = 1:length(nodegroup);
 nodegroup(duplicatenodes,:) =[];
+
+% renumber what group everything belongs to
+new2oldgroup(duplicatenodes) = [];
+old2newgroup = zeros(length(nodegroup),1);
+old2newgroup(new2oldgroup) = 1:length(new2oldgroup);
+whichnodegroup(allnodes) = old2newgroup(map2newgroup(whichnodegroup(allnodes)));
 %%
 
 %
@@ -91,9 +111,9 @@ if (opt.dodisplay>1) % show grouped nodes on image
     figure
     imshowpair(skelimage,nodeimg)
     hold all
-    plot(nodegroup(:,1),nodegroup(:,2),'co')   
+    plot(nodegroup(:,1),nodegroup(:,2),'co')      
+    title('grouped nodes')    
     hold off
-    drawnow
 end
     
 %% starting from a node, trace out all connected edges
@@ -107,9 +127,11 @@ alledges= {};
 edgenodes = [];
 
 remainimg= edgeimg;
+
 for nc = 1:size(nodegroup,1)
     %[nc size(nodegroup,1)]
     %%
+    
     subs = [round(nodegroup(nc,2))+step(:,2),round(nodegroup(nc,1))+step(:,1)];
     
     %
@@ -131,6 +153,8 @@ for nc = 1:size(nodegroup,1)
     for dc= 1:length(dirs)
         %%
         useimg = tmpimg;
+        samegroup = find(whichnodegroup(allnodes)==nc);
+        useimg(allnodes(samegroup)) = 1;
         useimg(dirs) =0;
         useimg(dirs(dc)) = 1;
         
@@ -141,28 +165,54 @@ for nc = 1:size(nodegroup,1)
         contour = contour(1:endind,:);
         
         stopind = size(contour,1);
-        for cc = 1:size(contour,1)
+        hitend = false;
+        for cc = 2:size(contour,1)
             %%
-            dists = sqrt(sum((contour(cc,:) - fliplr(nodegroup)).^2,2));
+            %dists = sqrt(sum((contour(cc,:) - fliplr(nodegroup)).^2,2));
+            dists = sqrt(sum((contour(cc,:) - [allnodex,allnodey]).^2,2));
             dists(nc) = inf;
-            closenodes = find(dists<opt.closenode);
+            closenodes = find(dists<opt.closenode & whichnodegroup(allnodes)~=nc);
             if (~isempty(closenodes))
+                % of the nodes 'close enough', which is closest to the next
+                % step of the contour?
+                if (cc==size(contour,1))
+                    closest = closenodes(1);
+                else
+                    dist2 = sum((contour(cc+1,:)-[allnodex(closenodes),allnodey(closenodes)]).^2,2);
+                    [~,b] = min(dist2);
+                    closest = closenodes(b);
+                end
+                
                 % break contour
-                nearestnode = closenodes(1);
-                stopind = cc;
-                contour(cc,:) = fliplr(nodegroup(nearestnode,:));
+                nearestnode = whichnodegroup(allnodes(closest));   
+                %if (cc==1)
+                %    stopind = cc+1;
+                %else
+                    stopind = cc;
+                %end
+                contour(stopind,:) = fliplr(nodegroup(nearestnode,:));
                 break
             end
             
             if (cc==size(contour,1))
                 [~,nearestnode] = min(dists);
+                nearestnode = whichnodegroup(allnodes(nearestnode));   
+                hitend = true;
             end
         end
+        if (nearestnode==nc & size(contour,1)<=2) % doubled back to same node group
+           continue
+        end
+                        
         contour = contour(1:stopind,:);
         contour(1,:) = fliplr(nodegroup(nc,:));
         
-        edgect= edgect+1;
-        alledges{edgect} = [fliplr(contour); nodegroup(nearestnode,:)];
+        if (hitend)
+            contour(end+1,:) = fliplr(nodegroup(nearestnode,:));
+        end
+        
+        edgect= edgect+1;        
+        alledges{edgect} = [fliplr(contour)];%; nodegroup(nearestnode,:)];
         edgenodes(edgect,:) = [nc nearestnode];
         
         % knockout edges from image
@@ -189,6 +239,7 @@ if (opt.dodisplay>1)
         text(edge(1,1),edge(1,2),sprintf('%d',ec),'Color',cmap(ec,:))
     end
     hold off
+    title('Edges')
     drawnow
 end
 %% sort node order for each edge
