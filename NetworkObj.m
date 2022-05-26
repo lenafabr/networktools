@@ -262,6 +262,7 @@ methods
         if (~isempty(NT.edgepath)); NT.edgepath = NT.edgepath(mapnew2oldedge); end
         if (~isempty(NT.edgelens)); NT.edgelens = NT.edgelens(mapnew2oldedge); end
         if (~isempty(NT.cumedgelen)); NT.cumedgelen = NT.cumedgelen(mapnew2oldedge); end
+        if (~isempty(NT.nodelabels)); NT.nodelabels = NT.nodelabels(keepind); end
     end
     
     function [mapnew2oldedge] = keepEdges(NT,keepind)        
@@ -646,6 +647,65 @@ methods
 %         end
 % 
 %      end
+
+    function mergeEdges(NT,nodes)
+        % for a list of degree 2 nodes, merge the edges connecting to them into a
+        % single consecutive edge
+        
+        donodes = nodes;
+        
+        for nc = 1:length(nodes)
+            node = donodes(nc);
+            
+            %%
+            if (NT.degrees(node)~=2)
+                error('can only merge at deg 2 nodes')
+            end
+            
+            ec1 = NT.nodeedges(node,1);
+            ec2 = NT.nodeedges(node,2);
+            
+            if  (NT.edgenodes(ec1,1)==node)
+                % outgoing edge
+                newedgepath = flipud(NT.edgepath{ec1}(2:end,:));
+                n1 = NT.edgenodes(ec1,2);
+            elseif (NT.edgenodes(ec1,2)==node)
+                % incoming edge
+                newedgepath = NT.edgepath{ec1}(1:end-1,:);
+                n1 = NT.edgenodes(ec1,1);
+            else
+                error('bad connectivity info, edge 1')
+            end
+            
+            if  (NT.edgenodes(ec2,2)==node)
+                % incoming edge
+                newedgepath = [newedgepath; flipud(NT.edgepath{ec2}(1:end,:))];
+                n2 = NT.edgenodes(ec2,1);
+            elseif (NT.edgenodes(ec2,1)==node)
+                % outgoing edge
+                newedgepath = [newedgepath; NT.edgepath{ec2}(1:end,:)];
+                n2 = NT.edgenodes(ec2,2);
+            else
+                error('bad connectivity info, edge 2')
+            end
+            
+            % reconnect first edge
+            NT.edgenodes(ec1,:) = [n1 n2];
+            NT.edgepath{ec1} = newedgepath;
+            
+            % get rid of merged node
+            keepind = true(1,NT.nnode);
+            keepind(node) = false;
+            keepind = find(keepind);
+            [mapold2new,mapnew2oldedge] = NT.keepNodes(keepind);
+            
+            newedgeind = find(mapnew2oldedge==ec1);
+            NT.setCumEdgeLen(newedgeind,true)
+            
+            % update the new node indices
+            donodes(nc+1:end) = mapold2new(donodes(nc+1:end));
+        end
+    end
      
      function outputPDB(NT,outfile,scl)
         %% output network as pdb formatted file
