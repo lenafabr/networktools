@@ -262,7 +262,7 @@ global newf NTobj imgObj plotoptObj nodeplotH edgeplotH imageH selNodes nodenet2
 return
 
 function plotNet()
-    global newf NTobj plotoptObj nodeplotH edgeplotH
+    global newf NTobj plotoptObj nodeplotH edgeplotH nodenet2plot edgenet2plot
     
     newf=figure(1);
     
@@ -472,7 +472,7 @@ function pushbuttonAddNode_Callback(hObject, eventdata, handles)
         
         set(gcf,'Pointer','arrow');
        
-        for i = 1:length(P)
+        for i = 1:size(P,1)
             connect{i} = [];
             delete(H(i));
         end
@@ -670,8 +670,8 @@ return
 function ind = findNearestNode(nodepos, xy)
     dNodes = nodepos - xy;
     d2 = dNodes(:,1).^2 + dNodes(:,2).^2;
-    M = min(d2);
-    ind = find(d2 == M);       
+    [M,ind] = min(d2);
+    %ind = find(d2 == M);       
 return
 
 function iSel = findNearestEdge(xy)
@@ -948,7 +948,8 @@ function [Edges pth] = traceEdges(Nodes, edges)
 return
 
 function pushbuttonMerge_Callback(hObject, eventdata, handles)
-    global NTobj newf selNodes selEdges nodeplotH guilock
+% merge at selected nodes. This will trigger redrawing of full network
+    global NTobj newf selNodes selEdges nodeplotH guilock edgenet2plot nodenet2plot
 
     if isempty(selNodes)
         return
@@ -962,27 +963,42 @@ function pushbuttonMerge_Callback(hObject, eventdata, handles)
     figure(newf)
     StartAction(handles, 'Merging edges...');  
     try
-        % Unselect all edges
-        L = findobj(gca,'Type','line');
-        for i=1:length(L)
-            L(i).Color = 'g';
-        end
+        % Unselect all edges         
+        L = findobj(gca,'Type','images.roi.PolyLine');
+        delete(L);    
         selEdges = [];
-
+        
+        
+        % get selected node handles
+        nodeH = findobj(gca, 'Type','images.roi.Point');       
+    
+        if (isempty(nodeH))
+            disp('No nodes selected for merging.')
+            return
+        end
+    
+        % positions of points
+        selnodepos = vertcat(nodeH.Position);
+    
+        if (isempty(selnodepos))
+            disp('No nodes selected for merging.')
+            delete(nodeH)
+            return
+        else
+            % get selected network nodes
+            selNodes = knnsearch(NTobj.nodepos,selnodepos);
+        end
+        
+        deg2ind = find(NTobj.degrees(selNodes)==2);
+        selNodes = selNodes(deg2ind);
+        
+        if (isempty(selNodes))
+            disp('No deg 2 nodes selected')
+            return
+        end
+        
         nSel = length(selNodes);
         
-        % Restrict merging only for the nodes with 2 adjoined edges,
-        % unselect other nodes
-        scatter = findobj(gca,'Type','scatter');
-        iIgnore = [];
-        for i=1:nSel
-            if NTobj.degrees(selNodes(i)) ~= 2
-                iIgnore = [iIgnore i];
-                scatter.CData(selNodes(i),:) = [1 0 0];
-            end
-        end
-        selNodes(iIgnore) = [];
-        nSel = length(selNodes);
 
         % Edges involved
         edges = [];
@@ -1025,7 +1041,11 @@ function pushbuttonMerge_Callback(hObject, eventdata, handles)
         NTobj.keepEdges(keepindEdge);
         NTobj.keepNodes(keepindNode);
         
+        % delete all picked nodes
+        delete(nodeH)        
+        
         figure(newf)
+        % replot network
         plotNet();
     catch exception
         disp(getReport(exception))
