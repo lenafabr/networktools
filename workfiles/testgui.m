@@ -14,4 +14,6 @@ plotopt.edgeplotopt = {'LineWidth',2,'Color','g'};
 %% make new network
 
 %%
-networkEdit('NT',filteredNT,'img',img,'plotopt',plotopt)
+plotopt = struct('nodecolor',[1 0 0],'nodesize',20)
+plotopt.edgeplotopt = {'LineWidth',2,'Color','g'};
+networkEdit('NT',NT,'img',img,'plotopt',plotopt)

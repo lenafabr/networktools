@@ -61,8 +61,8 @@ function networkEdit_OpeningFcn(hObject, eventdata, handles, varargin)
     guidata(hObject, handles);
 
     % specific for AF
-    addpath /home/matlab/Lena/networktools;
-    addpath /home/matlab/Lena/networktools/gui;
+    %addpath /home/matlab/Lena/networktools;
+    %addpath /home/matlab/Lena/networktools/gui;
     
 %% set defaults
     NTobj = [];
@@ -185,8 +185,8 @@ function menuSave_Callback(hObject, eventdata, handles)
     global NTobj NTlocal imgObj plotoptObj fileName
     
     if ~NTlocal.filtered
-        NTobj = filterActiveNetwork(NTlocal.nodepos, NTlocal.edgenodes,...
-        NTlocal.nodeactive, NTlocal.edgeactive, NTlocal.edgepath);
+        filterActiveNetwork(NTlocal.nodepos, NTlocal.edgenodes,...
+        NTlocal.nodeactive, NTlocal.edgeactive, NTlocal.edgepath,NTobj);
         NTlocal.filtered = true;
     end
     
@@ -957,8 +957,8 @@ function pushbuttonMerge_Callback(hObject, eventdata, handles)
     end
     
     if ~NTlocal.filtered
-        NTobj = filterActiveNetwork(NTlocal.nodepos, NTlocal.edgenodes,...
-            NTlocal.nodeactive, NTlocal.edgeactive, NTlocal.edgepath);
+        filterActiveNetwork(NTlocal.nodepos, NTlocal.edgenodes,...
+            NTlocal.nodeactive, NTlocal.edgeactive, NTlocal.edgepath,NTobj);
         NTlocal.filtered = true;
     end
 
@@ -1098,24 +1098,26 @@ function pushbuttonFilterActive_Callback(hObject, eventdata, handles)
         return;
     end
     
-    NTobj = filterActiveNetwork(NTlocal.nodepos, NTlocal.edgenodes,...
-        NTlocal.nodeactive, NTlocal.edgeactive, NTlocal.edgepath);
+    filterActiveNetwork(NTlocal.nodepos, NTlocal.edgenodes,...
+        NTlocal.nodeactive, NTlocal.edgeactive, NTlocal.edgepath,NTobj);
         
     NTlocal = getNTlocal(NTobj);
 return
 
-function NT = filterActiveNetwork(nodepos, edgenodes,...
-                                  nodeact, edgeact, edgepath)
+function filterActiveNetwork(nodepos, edgenodes,...
+                                  nodeact, edgeact, edgepath,NT)
     % from a full list of nodes and edges (some inactive)
     % filter out only the active ones and make a clean network obj
 
-    NT = NetworkObj();
+    %NT = NetworkObj();
 
     % copy over active node positions
     NT.nodepos = nodepos(nodeact,:);
     
-    % copy over active edges
+    
+    % copy over active edges    
     newedgenodes = edgenodes(edgeact,:);
+    NT.edgenodes = zeros(nnz(edgeact),2);
     
     % Clean up which nodes the edges are pointing to:
     
