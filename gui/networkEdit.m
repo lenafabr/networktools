@@ -53,13 +53,12 @@ function networkEdit_OpeningFcn(hObject, eventdata, handles, varargin)
 % varargin   command line arguments to networkEdit (see VARARGIN)
     global newf NTobj NTlocal imgObj plotoptObj selNodes selEdges guilock
     global selectFirst
-% Choose default command line output for networkEdit
-handles.output = hObject;
-selectFirst = true;
-
-
-% Update handles structure
-guidata(hObject, handles);
+    % Choose default command line output for networkEdit
+    handles.output = hObject;
+    selectFirst = true;
+    
+    % Update handles structure
+    guidata(hObject, handles);
 
     % specific for AF
     addpath /home/matlab/Lena/networktools;
@@ -118,7 +117,7 @@ guidata(hObject, handles);
     % UIWAIT makes networkEdit wait for user response (see UIRESUME)
 % uiwait(handles.mainFig);
 
-    return
+return
     
 % --- Outputs from this function are returned to the command line.
 function varargout = networkEdit_OutputFcn(hObject, eventdata, handles) 
@@ -297,128 +296,8 @@ function plotNet()
     hold off
 return
 
-function opt = prepareOpt(options, nnode, nedge)
-    opt.nodeplotopt = {'filled'};
-    opt.nodesize = 20;
-    opt.edgecolor = [0 0 0];
-    opt.nodecolor = [0 0 1];
-    opt.plotnodes = 1:nnode;
-    opt.plotedges = 1;
-    opt.edgeplotopt = {'LineWidth',.5};
-    % plot curved paths instead of straight edges
-    opt.plotedgepath = 1;
-    % show data tips as edge or node index
-    opt.datatipindex = false;
-    % scaling factor
-    opt.scl = 1;
-    
-    opt =copyStruct(options,opt,1);
-    
-    if (length(opt.nodesize)==1)
-        opt.nodesize = opt.nodesize*ones(nnode,1);
-    end
-    if (size(opt.nodecolor,1)==1)
-        opt.nodecolor = opt.nodecolor.*ones(nnode,3);
-    end
-    if (size(opt.edgecolor,1)==1)
-        opt.edgecolor = opt.edgecolor.*ones(nedge,3);
-    end
-return
-
-function [nodeplotH,edgeplotH] = plotNodes(NT,opt)                  
-    opt = prepareOpt(opt, NT.nnode, NT.nedge);
-    
-    dim = NT.dim;
-    nodepos = NT.nodepos;
-    scl = opt.scl;
-    
-    hold all  
-    dttemplateset = false;    
-    if (~isempty(opt.plotnodes))
-        nodeplotH = scatter(...
-            nodepos(opt.plotnodes,1)*scl, nodepos(opt.plotnodes,2)*scl,...
-            opt.nodesize(opt.plotnodes),...
-            opt.nodecolor(opt.plotnodes,:),opt.nodeplotopt{:});
-%         hold all
-    end
-    hold off
-return
-
-function [nodeplotH,edgeplotH] = plotSelected(NT,options)                  
-    opt = prepareOpt(options, NT.nnode, NT.nedge);
-    
-    dim = NT.dim;
-    nodepos = NT.nodepos;
-    edgenodes = NT.edgenodes;
-    scl = opt.scl;
-         
-    dttemplateset = false;
-    if (opt.plotedges)
-        for ec = 1:size(edgenodes,1)
-            if (~isempty(NT.edgepath) & opt.plotedgepath)
-                % plot curved paths of the edges
-                path = NT.edgepath{ec};
-                if (dim==2)
-                    edgeplotH(ec) = plot(path(:,1)*scl,path(:,2)*scl,'Color',opt.edgecolor(ec,:),opt.edgeplotopt{:});
-                else
-                    edgeplotH(ec) = plot3(path(:,1)*scl,path(:,2)*scl,path(:,3)*scl,'k.-',opt.edgeplotopt{:});
-                end
-                
-                % label the edge graphics object with the
-                % corresponding index
-                if (~isempty(NT.edgepath) & opt.plotedgepath & opt.datatipindex)
-                    edgeplotH(ec).addprop('edgeind');
-                    edgeplotH(ec).edgeind = ec;
-                    
-                    dttemplate = edgeplotH(ec).DataTipTemplate;
-                    dttemplate.FontSize=6;
-                    dttemplate.DataTipRows(1).Value = ec*ones(size(NT.edgepath{ec},1),1);
-                    dttemplate.DataTipRows(1).Label = '';
-                    dttemplate.DataTipRows(2:end) = [];
-                    dttemplateset = true;
-                end
-                
-                % turn off datatips for edge paths
-                %edgeplotH(ec).PickableParts = 'none';
-            else
-                p1 = edgenodes(ec,1); p2 = edgenodes(ec,2);
-                if (dim==2)
-                    plot(nodepos([p1,p2],1)*scl,nodepos([p1,p2],2)*scl,...
-                        'Color',opt.edgecolor(ec,:),opt.edgeplotopt{:});
-                else
-                    plot3(nodepos([p1,p2],1)*scl,nodepos([p1,p2],2)*scl,...
-                        nodepos([p1,p2],3)*scl,'k',opt.edgeplotopt{:});
-                end
-            end
-            hold all
-        end
-        axis equal
-    end
-    
-    if (~isempty(opt.plotnodes))
-        if (dim==2)
-            nodeplotH = scatter(nodepos(opt.plotnodes,1)*scl,nodepos(opt.plotnodes,2)*scl,opt.nodesize(opt.plotnodes),opt.nodecolor(opt.plotnodes,:),opt.nodeplotopt{:});
-        else
-            nodeplotH = scatter3(nodepos(opt.plotnodes,1)*scl,nodepos(opt.plotnodes,2)*scl,nodepos(opt.plotnodes,3)*scl,...
-                opt.nodesize(opt.plotnodes),opt.nodeplotopt{:});
-        end
-        axis equal
-        hold all
-    end
-    
-    % set data tip properties
-    if (opt.datatipindex & ~isempty(opt.plotnodes))
-        dt = nodeplotH.DataTipTemplate;
-        dt.DataTipRows(1).Value = 1:NT.nnode;
-        dt.DataTipRows(1).Label = '';
-        dt.DataTipRows(2:end) = [];
-        dt.FontSize=6;
-    end   
-    hold off
-return
-
 function sliderContrast_Callback(hObject, eventdata, handles)
-    global imageH  imgObj
+    global imageH  imgObj guilock
     try
         a = get(hObject,'Value');
         hSlider2 = findobj('Tag', 'sliderBrightness');
@@ -428,12 +307,13 @@ function sliderContrast_Callback(hObject, eventdata, handles)
         imageH.CData(imageH.CData>1) = 1;
         imageH.CData(imageH.CData<0) = 0;
     catch exception
+        guilock = false;
         disp(getReport(exception))
     end
 return
 
 function sliderBrightness_Callback(hObject, eventdata, handles)
-    global imageH B imgObj
+    global imageH B imgObj guilock
     try
         hSlider1 = findobj('Tag', 'sliderContrast');
         a = hSlider1.Value;
@@ -443,6 +323,7 @@ function sliderBrightness_Callback(hObject, eventdata, handles)
         imageH.CData(imageH.CData>1) = 1;
         imageH.CData(imageH.CData<0) = 0;
     catch exception
+        guilock = false;
         disp(getReport(exception))
     end
 return
@@ -457,19 +338,16 @@ function pushbuttonImgReset_Callback(hObject, eventdata, handles)
     hSlider2.Value = 0;    
 return
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Manage nodes
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function ind = selectNode(addSelected, color)
-    global newf nodeplotH selNodes
+    global newf nodeplotH selNodes guilock
 
     disp('Use datatips to select desired nodes. Then hit any keyboard key (while the figure window is active).')
    
     try
         figure(newf)
-%         if selectFirst
-%             imitateEnter()
-%         end
 
         scatter = findobj(gca,'Type','scatter');
         PickableOn(scatter);
@@ -513,6 +391,7 @@ function ind = selectNode(addSelected, color)
             delete(datatips)
         end
     catch exception
+        guilock = false;
         disp(getReport(exception))
     end
     if ~exist('newf','var')
@@ -591,7 +470,7 @@ function pushbuttonSelArea_Callback(hObject, eventdata, handles)
 return
 
 function pushbuttonAddNode_Callback(hObject, eventdata, handles)
-    global NTlocal nodeplotH edgeplotH plotoptObj
+    global NTlocal nodeplotH edgeplotH plotoptObj guilock
     
     StartAction(handles, ...
         'Click on positions of desired nodes. To finish click Esc button')
@@ -642,6 +521,7 @@ function pushbuttonAddNode_Callback(hObject, eventdata, handles)
             S(i).HitTest = 'off';
         end
     catch exception
+        guilock = false;
         disp(getReport(exception))
     end
     NTlocal.filtered = false;
@@ -660,9 +540,6 @@ function iSel = selectEdge(color)
     PickableOn(edgeplotH);
     try
         figure(newf)
-%         if selectFirst
-%             imitateEnter()
-%         end
 
         iSel=[];  
         w = 0;
@@ -695,6 +572,7 @@ function iSel = selectEdge(color)
             %selEdges = [selEdges iSel];
         end
     catch exception
+        guilock = false;
         disp(getReport(exception))
     end
     figure(newf)
@@ -780,6 +658,7 @@ function pushbuttonAddEdge_Callback(hObject, eventdata, handles)
         edgeplotH(i).addprop('edgeind');
         edgeplotH(i).edgeind = i;
     catch exception
+        guilock = false;
         disp(getReport(exception))
     end
     NTlocal.filtered = false;
@@ -1157,6 +1036,7 @@ function pushbuttonMerge_Callback(hObject, eventdata, handles)
         figure(newf)
         plotNet();
     catch exception
+        guilock = false;
         disp(getReport(exception))
     end
     EndAction(handles)
@@ -1282,24 +1162,6 @@ function PickableOff(obj)
             obj(i).HitTest = 'off';
         end
     end
-return
-
-function imitateEnter()
-% Imitation of clicking Enter on the figure
-    global selectFirst
-    try
-        P = get(gcf, 'Position');
-        %             SS = get(0,'screensize');
-        hroot=groot;
-        set(hroot,'PointerLocation',[P(1)+10, P(2)+10]);
-        pause(2);
-        inputemu('key_normal','\ENTER');
-    catch exception
-        disp(getReport(exception))
-        selectFirst = false;
-        return
-    end
-    selectFirst = false;
 return
 
 function ActionsEnable(handles)
