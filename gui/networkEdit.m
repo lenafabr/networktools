@@ -52,17 +52,15 @@ function networkEdit_OpeningFcn(hObject, eventdata, handles, varargin)
 % handles    structure with handles and user data (see GUIDATA)
 % varargin   command line arguments to networkEdit (see VARARGIN)
     global newf NTobj NTlocal imgObj plotoptObj selNodes selEdges guilock
-    global selectFirst
     % Choose default command line output for networkEdit
     handles.output = hObject;
-    selectFirst = true;
     
     % Update handles structure
     guidata(hObject, handles);
 
     % specific for AF
-    %addpath /home/matlab/Lena/networktools;
-    %addpath /home/matlab/Lena/networktools/gui;
+    addpath /home/matlab/Lena/networktools;
+    addpath /home/matlab/Lena/networktools/gui;
     
 %% set defaults
     NTobj = [];
@@ -438,7 +436,7 @@ function pushbuttonUnselectAllNodes_Callback(hObject, eventdata, handles)
 return
 
 function pushbuttonSelArea_Callback(hObject, eventdata, handles)
-    global newf NTobj selNodes selEdges
+    global newf NTlocal selNodes selEdges
     
     selEdges = unique(selEdges);
     figure(newf);
@@ -451,8 +449,8 @@ function pushbuttonSelArea_Callback(hObject, eventdata, handles)
     yc = [yp' roi.Position(1,2)]';
     %plot(xp,yp, 'm')
     
-    x = NTobj.nodepos(:,1);
-    y = NTobj.nodepos(:,2);
+    x = NTlocal.nodepos(:,1);
+    y = NTlocal.nodepos(:,2);
     [in on] = inpolygon(x,y, xp,yp);
     delete(roi);
     
@@ -470,7 +468,7 @@ function pushbuttonSelArea_Callback(hObject, eventdata, handles)
 return
 
 function pushbuttonAddNode_Callback(hObject, eventdata, handles)
-    global NTlocal nodeplotH edgeplotH plotoptObj guilock
+    global NTlocal guilock
     
     StartAction(handles, ...
         'Click on positions of desired nodes. To finish click Esc button')
@@ -532,7 +530,7 @@ return
 % Manage edges
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function iSel = selectEdge(color)
-    global newf NTobj NTlocal selEdges edgeplotH guilock selectFirst
+    global newf edgeplotH guilock
     
     figure(newf)
     L = findobj(gca,'Type','line');
@@ -618,7 +616,7 @@ function pushbuttonUnselectAllEdges_Callback(hObject, eventdata, handles)
 return
 
 function pushbuttonAddEdge_Callback(hObject, eventdata, handles)
-    global newf NTobj NTlocal edgeplotH guilock
+    global newf NTlocal edgeplotH guilock
     
     if (guilock)
         disp('Cannot draw new edge, gui is locked. Finish previous operation')
@@ -834,6 +832,138 @@ return
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Actions
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% function degrees = getDegrees(edgenodes, nodeactive, edgeactive)
+%     global NTobj
+%     nnodes = length(nodeactive);
+%     Nodes = 1:nnodes;
+%     Nodes = Nodes(nodeactive);
+%     degrees = zeros(nnodes,1);
+%     for in=1:length(Nodes)
+%         for ie=1:length(edgeactive)
+%             if edgeactive(ie) && any(edgenodes(ie,:)==in)
+%                 degrees(in) = degrees(in) + 1;
+%             end
+%         end
+%     end
+% %         E1 = edgenodes(edgeactive,1);
+% %         E2 = edgenodes(edgeactive,2);                
+% %         degrees(node) = length(E1(E1==node)) + length(E2(E2==node));
+%     dif = degrees - NTobj.degrees(nodeactive);
+%     
+% return
+% 
+% function chain = makeNodeChains(selN, nodenodes)
+% % Organize all selected nodes into chains of sequential nodes
+%     global NTobj
+%     
+%     j = 1;
+%     while true
+%         n0 = selN(1);
+%         chain{j}.nodes = [n0];
+%         selN(selN==n0) = [];
+%         n = n0;
+%         while true
+%             n1 = nodenodes(n,1);
+%             if any(selN(:) == n1)
+%                 chain{j}.nodes = [n1 chain{j}.nodes];
+%                 selN(selN==n1) = [];
+%                 n = n1;
+%             else
+%                 break;
+%             end
+%         end
+%         
+%         n = n0;
+%         while true
+%             n2 = nodenodes(n,2);
+%             if any(selN(:) == n2)
+%                 chain{j}.nodes = [chain{j}.nodes n2];
+%                 selN(selN==n2) = [];
+%                 n = n2;
+%             else
+%                 break;
+%             end
+%         end
+%         
+%         if isempty(selN)
+%             break;
+%         end
+%         j = j+1;
+%     end
+%     return;
+% return
+% 
+% function Nodes = reorderNodes(selN, nodenodes, edgenodes)
+%     I = 0;
+%     for i=1:length(selN)
+%         nn = NTobj.nodenodes(selN(i),1:2);
+%         if ~any(selN(:) == nn(1))
+%             Nodes = [nn(1) selN(i)];
+%             lastNode = nn(2);
+%             I = i;
+%             break;
+%         end
+%         if ~any(selN(:) == nn(2))
+%             Nodes = [nn(2) selN(i)];
+%             lastNode = nn(1);
+%             I = i;
+%             break;
+%         end
+%     end
+%     selN(I) = [];
+% 
+%     % Organize Nodes sequentially
+%     if ~isempty(selN)
+%         while true
+%             for i=1:length(selN)
+%                 nn = NTobj.nodenodes(selN(i),1:2);
+%                 if nn(1) == Nodes(end)
+%                     Nodes = [Nodes selN(i)];
+%                     lastNode = nn(2);
+%                     I = i;
+%                     break;
+%                 end
+%                 if nn(2) == Nodes(end)
+%                     Nodes = [Nodes selN(i)];
+%                     lastNode = nn(1);
+%                     I = i;
+%                     break;
+%                 end
+%             end
+%             selN(I) = [];
+%             
+%             if isempty(selN)
+%                 break;
+%             end
+%         end
+%     end
+%     Nodes = [Nodes lastNode];
+% return
+% 
+% function [Edges pth] = traceEdges(Nodes, edges)
+% % Organize edges sequentially    
+%     nN = length(Nodes);
+%     nE = length(edges);
+%     Edges = [];
+%     for i=1:nN-1
+%         n1 = Nodes(i);
+%         n2 = Nodes(i+1);
+%         for j=1:nE
+%             e = edgenodes(edges(j),:);
+%             if e(1) == n1 && e(2) == n2 || e(1) == n2 && e(2) == n1
+%                 Edges = [Edges edges(j)];
+%                 if edgenodes(edges(j),:) == [n1 n2]
+%                     pth{i} = NTobj.edgepath{edges(j)};
+%                 else
+%                     pth{i} = flipud(NTobj.edgepath{edges(j)});
+%                 end
+%                 break;
+%             end
+%         end
+%     end
+% return
+% 
+
 function chain = makeNodeChains(selN)
 % Organize all selected nodes into chains of sequential nodes
     global NTobj selNodes
@@ -949,7 +1079,9 @@ function [Edges pth] = traceEdges(Nodes, edges)
     end
 return
 
-function pushbuttonMerge_Callback(hObject, eventdata, handles)
+
+
+function pushbuttonMerge_CallbackNew(hObject, eventdata, handles)
     global NTobj NTlocal newf selNodes selEdges nodeplotH guilock
     
     if isempty(selNodes)
@@ -958,10 +1090,96 @@ function pushbuttonMerge_Callback(hObject, eventdata, handles)
     
     if ~NTlocal.filtered
         filterActiveNetwork(NTlocal.nodepos, NTlocal.edgenodes,...
-            NTlocal.nodeactive, NTlocal.edgeactive, NTlocal.edgepath,NTobj);
+            NTlocal.nodeactive, NTlocal.edgeactive, ...
+            NTlocal.edgepath, NTobj);
         NTlocal.filtered = true;
     end
+    
+    if (guilock)
+        disp('Cannot merge, gui is locked. Finish previous operation.')
+        return
+    end
+    
+    figure(newf)
+    StartAction(handles, 'Merging edges...');  
+    try
+        degrees = getDegrees(NTlocal.edgenodes, NTlocal.nodeactive, ...
+            NTlocal.edgeactive);
 
+        % Unselect all edges
+        L = findobj(gca,'Type','line');
+        for i=1:length(L)
+            L(i).Color = 'g';
+        end
+        selEdges = [];
+
+        nSel = length(selNodes);
+        
+        % Restrict merging only for the nodes with 2 adjoined edges,
+        % unselect other nodes
+        scatter = findobj(gca,'Type','scatter');
+        iIgnore = [];
+        for i=1:nSel
+            if NTobj.degrees(selNodes(i)) ~= 2
+                iIgnore = [iIgnore i];
+                scatter.CData(selNodes(i),:) = [1 0 0];
+            end
+        end
+        selNodes(iIgnore) = [];
+        nSel = length(selNodes);
+
+        % Edges involved
+        edges = [];
+        for i=1:nSel
+            edges = [edges NTobj.nodeedges(selNodes(i),1:2)];
+        end
+        edges = unique(edges);
+        nE = length(edges);
+
+        % Organize all selected nodes into chains of sequential nodes
+        chain = makeNodeChains(selNodes, NTobj.nodenodes);
+                
+        % Convert each chain into a single edge
+        for iChain=1:length(chain)
+            selN = chain{iChain}.nodes;
+            
+            Nodes = reorderNodes(selN, NTobj.nodenodes);
+            nN = length(Nodes);
+            
+            [Edges pth] = traceEdges(Nodes, edges, NTlocal.edgenodes);
+            NTobj.edgenodes(Edges(1),:) = [Nodes(1) Nodes(end)];
+
+            newpath = pth{1};
+            for i=2:length(pth)
+                newpath = [newpath(1:end-1,:); pth{i}];
+            end
+            NTlocal.edgepath{Edges(1)} = newpath;
+        end
+        
+        
+        figure(newf)
+        plotNet();
+    catch exception
+        guilock = false;
+        disp(getReport(exception))
+    end
+    EndAction(handles)
+return
+
+function pushbuttonMerge_Callback(hObject, eventdata, handles)
+    global NTobj NTlocal newf selNodes selEdges nodeplotH guilock
+        
+    if isempty(selNodes)
+        return
+    end
+    
+    if ~NTlocal.filtered
+        filterActiveNetwork(NTlocal.nodepos, NTlocal.edgenodes,...
+            NTlocal.nodeactive, NTlocal.edgeactive, ...
+            NTlocal.edgepath, NTobj);
+        NTlocal.filtered = true;
+    end
+    
     if (guilock)
         disp('Cannot merge, gui is locked. Finish previous operation.')
         return
@@ -1039,6 +1257,8 @@ function pushbuttonMerge_Callback(hObject, eventdata, handles)
         guilock = false;
         disp(getReport(exception))
     end
+    
+    NTlocal = getNTlocal(NTobj); 
     EndAction(handles)
 return
 
@@ -1050,17 +1270,15 @@ function removeSelected()
     end
         
     figure(newf);
-    % Remove nodes
+    % Inactivate selected nodes
     scatter = findobj(gca,'Type','scatter');    
-    scatter.SizeData(selNodes) = [];
-    scatter.XData(selNodes) = [];
-    scatter.YData(selNodes) = [];
-    scatter.CData(selNodes,:) = [];
+    scatter.SizeData(selNodes) = 0.001;
     NTlocal.nodeactive(selNodes) = false; 
 
     % Add adjacent edges to selected for later deletion
     for j=1:length(selNodes)
         k = selNodes(j);
+        scatter.CData(k,:) = [0 0 0];
         for ec=1:length(NTlocal.edgepath)
             if any(NTlocal.edgenodes(ec,:) == k)
                 selEdges = [selEdges ec]; 
@@ -1069,7 +1287,7 @@ function removeSelected()
     end
     selEdges = sort(unique(selEdges));
     
-    % Delete selected edges
+    % Inactivate selected edges
     Lines = findobj(gca,'Type','line');
     ind = [];
     for j=1:length(Lines)
@@ -1099,13 +1317,13 @@ function pushbuttonFilterActive_Callback(hObject, eventdata, handles)
     end
     
     filterActiveNetwork(NTlocal.nodepos, NTlocal.edgenodes,...
-        NTlocal.nodeactive, NTlocal.edgeactive, NTlocal.edgepath,NTobj);
+        NTlocal.nodeactive, NTlocal.edgeactive, NTlocal.edgepath, NTobj);
         
     NTlocal = getNTlocal(NTobj);
 return
 
 function filterActiveNetwork(nodepos, edgenodes,...
-                                  nodeact, edgeact, edgepath,NT)
+                                  nodeact, edgeact, edgepath, NT)
     % from a full list of nodes and edges (some inactive)
     % filter out only the active ones and make a clean network obj
 
