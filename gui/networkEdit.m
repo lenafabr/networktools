@@ -59,8 +59,8 @@ function networkEdit_OpeningFcn(hObject, eventdata, handles, varargin)
     guidata(hObject, handles);
 
     % specific for AF
-    addpath /home/matlab/Lena/networktools;
-    addpath /home/matlab/Lena/networktools/gui;
+%     addpath /home/matlab/Lena/networktools;
+%     addpath /home/matlab/Lena/networktools/gui;
     
 %% set defaults
     NTobj = [];
@@ -484,6 +484,10 @@ function pushbuttonAddNode_Callback(hObject, eventdata, handles)
             scatter.XData = [scatter.XData P{i}(1)];
             scatter.YData = [scatter.YData P{i}(2)];
             scatter.CData = [scatter.CData' [1 0 0]']';
+            
+            scatter.DataTipTemplate.DataTipRows.Value =...
+                [scatter.DataTipTemplate.DataTipRows.Value  ...
+                (max(scatter.DataTipTemplate.DataTipRows.Value)+1)];
 
             P{i} = [];
             delete(H(i));
