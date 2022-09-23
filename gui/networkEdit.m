@@ -473,7 +473,7 @@ function pushbuttonAddNode_Callback(hObject, eventdata, handles)
     global NTlocal nodeplotH edgeplotH plotoptObj guilock
     
     StartAction(handles, ...
-        'Click on positions of desired nodes. To finish click Esc button')
+        'Click on positions of desired nodes. To finish hit Esc.')
     try
         P = []; H=[];
         i=0;

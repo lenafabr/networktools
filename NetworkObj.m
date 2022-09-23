@@ -27,6 +27,8 @@ properties
     edgepath % coordinates of path along each edge
     cumedgelen % cumulative lengths along each edge
     edgewidth;
+    
+    use_edgeedge;
 end
 
 methods
@@ -40,6 +42,8 @@ methods
         NT.maxdeg = 10; % maximum allowed degree              
         NT.loops = [];
         NT.Name = '';
+        % keep track of edge-edge connectivity?
+        NT.use_edgeedge=true;
         
         if (exist('fname','var'))
             if (exist('options','var'))
@@ -91,6 +95,7 @@ methods
             % recalculate edge paths?
             resetedgepath = false;
         end
+       
         
         % still calculate edge lens if none defined at all
         doedgelens = false; 
@@ -130,26 +135,28 @@ methods
         NT.nodeedges = NT.nodeedges(:,1:NT.maxdeg);
         
         
-         % set edgeedge connections
-        NT.edgeedges = zeros(NT.nedge,2,max(NT.degrees)*2);
-        for ec = 1:NT.nedge
-            n1 = NT.edgenodes(ec,1); n2 = NT.edgenodes(ec,2);
-            % edgeedge array gives, for a given edge: 
-            % which node is a neighbor edge attached to (1 or 2)
-            % what is the index of that neighbor edge
-            ct = 0;
-            for cc = 1:NT.degrees(n1)
-                ec2 = NT.nodeedges(n1,cc); % adjacent edge
-                if (ec~=ec2)
-                    ct = ct+1;
-                    NT.edgeedges(ec,:,ct) = [1,ec2];
+        if (NT.use_edgeedge)
+            % set edgeedge connections
+            NT.edgeedges = zeros(NT.nedge,2,max(NT.degrees)*2);
+            for ec = 1:NT.nedge
+                n1 = NT.edgenodes(ec,1); n2 = NT.edgenodes(ec,2);
+                % edgeedge array gives, for a given edge:
+                % which node is a neighbor edge attached to (1 or 2)
+                % what is the index of that neighbor edge
+                ct = 0;
+                for cc = 1:NT.degrees(n1)
+                    ec2 = NT.nodeedges(n1,cc); % adjacent edge
+                    if (ec~=ec2)
+                        ct = ct+1;
+                        NT.edgeedges(ec,:,ct) = [1,ec2];
+                    end
                 end
-            end
-            for cc = 1:NT.degrees(n2)
-                ec2 = NT.nodeedges(n2,cc); % adjacent edge
-                if (ec~=ec2)
-                    ct = ct+1;
-                    NT.edgeedges(ec,:,ct) = [2,ec2];
+                for cc = 1:NT.degrees(n2)
+                    ec2 = NT.nodeedges(n2,cc); % adjacent edge
+                    if (ec~=ec2)
+                        ct = ct+1;
+                        NT.edgeedges(ec,:,ct) = [2,ec2];
+                    end
                 end
             end
         end
@@ -470,6 +477,7 @@ methods
             end
         end
         
+        %G = NT.network2Graph()               
         paths = cyclebasis(adjmat,'path');
         %
         edgepaths = NT.nodepaths2edgepaths(paths);
@@ -760,12 +768,21 @@ methods
          % show data tips as edge or node index
          opt.datatipindex = false;
          % scaling factor
-         opt.scl = 1;
+         opt.scl = 1;                  
          
          if (exist('options','var'))
+             
+             if (isfield(options,'plotoverimage') & options.plotoverimage)
+                 % reset defaults for plotting over a BW image
+                 opt.nodesize =20;
+                 opt.nodecolor = [1 0 0]                 
+                 opt.edgeplotopt = {'LineWidth',1,'Color','g'};
+            end
+             
              opt =copyStruct(options,opt,1);
          end
-                           
+                      
+         
          if (length(opt.nodesize)==1)
              opt.nodesize = opt.nodesize*ones(NT.nnode,1);
          end

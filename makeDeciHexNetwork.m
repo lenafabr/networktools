@@ -13,7 +13,7 @@ function [NT,NTnotrim,NT0] = makeDeciHexNetwork(N, celldiam, options)
     opt.ntrimterminal = 0; % how many times to trim terminal nodes
     opt.rmnodefrac = 0.1;
     opt.rmedgefrac = 0.1;
-    opt.dodisplay = 1 % plot at the end
+    opt.dodisplay = 1 ;% plot at the end
     opt.keepR = inf; % do not remove any nodes or edges outside this radius
     % ntrimterminal, trim this many times to remove terminal nodes
     % rmnodefrac, node removed fraction
