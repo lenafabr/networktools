@@ -647,8 +647,8 @@ methods
         end
         
         if (isempty(NT.edgepath))
-            NT.outputPDB_old(NT,outfile,scl);
-            return 
+            %NT.outputPDB_old(NT,outfile,scl);
+            NT.interpolateEdgePaths(2);           
         end
         
         
@@ -659,6 +659,7 @@ methods
         ct = NT.nnode;
         for ec = 1:NT.nedge
             edgepath = NT.edgepath{ec};
+            beadind{ec} = [];
             for pc = 2:size(edgepath,1)-1
                 ct = ct+1;
                 beadlist(ct,:) = [ec pc];                
@@ -681,12 +682,24 @@ methods
             connections(nc,1) = nc;            
             for ecc = 1:NT.degrees(nc)
                 ec = NT.nodeedges(nc,ecc);
-                if (NT.edgenodes(ec,1)==nc)
-                    connections(nc,1+ecc) =beadind{ec}(2);
-                elseif(NT.edgenodes(ec,2)==nc)
-                    connections(nc,1+ecc) =beadind{ec}(end);
+                if (isempty(beadind{ec}))
+                    % connect to other nodes
+                    if (NT.edgenodes(ec,1)==nc)
+                        connections(nc,1+ecc) = NT.edgenodes(ec,2);
+                    elseif (NT.edgenodes(ec,2)==nc)
+                        connections(nc,1+ecc) =NT.edgenodes(ec,1);
+                    else
+                        error('bad network structure')
+                    end
                 else
-                    error('bad network structure')
+                    % connect to nodes along the paths
+                    if (NT.edgenodes(ec,1)==nc)
+                        connections(nc,1+ecc) =beadind{ec}(2);
+                    elseif(NT.edgenodes(ec,2)==nc)
+                        connections(nc,1+ecc) =beadind{ec}(end);
+                    else
+                        error('bad network structure')
+                    end
                 end
                 ncon(nc) = NT.degrees(nc);
             end
@@ -700,7 +713,7 @@ methods
             n1 = NT.edgenodes(ec,1); n2 = NT.edgenodes(ec,2);
             
             edgepath = NT.edgepath{ec};
-            for cc = 2:length(edgepath)-1  
+            for cc = 2:size(edgepath,1)-1  
                 ind = beadind{ec}(cc);
                 pos = scl*edgepath(cc,:);
                 
@@ -712,7 +725,7 @@ methods
                 else
                     con1 = beadind{ec}(cc-1);
                 end
-                if (cc==length(edgepath)-1)
+                if (cc==size(edgepath,1)-1)
                     con2 = n2;
                 else
                     con2 = beadind{ec}(cc+1);                    
@@ -725,7 +738,7 @@ methods
         
         % output connections
         for cc = 1:ct            
-            constr = sprintf('%5d',connections(cc,1:ncon(cc)));
+            constr = sprintf('%5d',connections(cc,1:ncon(cc)+1));
             fprintf(of,'CONECT%s\n',constr);
         end
         
