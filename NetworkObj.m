@@ -306,11 +306,20 @@ methods
         NT.setupNetwork();
     end
     
-    function outputNetwork(NT,outfile,nodelabels)
+    function outputNetwork(NT,outfile,options)
         % output network structure to file
         % edgepaths: lists of cycles, in terms of edges to include as LOOP
         % structures
         % reservoirnodes: which nodes belong to a certain reservoir
+        
+        opt = struct();
+        opt.nodelabels = {}; % are there any labels for the nodes?
+        opt.WRITEEVS = false; % should the edge values be written?
+        %opt.WRITENVS = true; % should the node values be written?
+
+        if (nargin > 2)
+            opt = copyStruct(options, opt);
+        end
         
         of = fopen(outfile,'w')
         fprintf(of,'%s\n','# file defining network structure')
@@ -328,8 +337,8 @@ methods
                 val = NT.nodevals(pc);                
             end
             
-            if (exist('nodelabels','var'))
-                fprintf(of,nodelblfmtstring,pc, NT.nodepos(pc,:), val,nodelabels{pc});
+            if (~isempty(opt.nodelabels))
+                fprintf(of,nodelblfmtstring,pc, NT.nodepos(pc,:), val,opt.nodelabels{pc});
             elseif (~isempty(NT.nodelabels))
                 fprintf(of,nodelblfmtstring,pc, NT.nodepos(pc,:), val,NT.nodelabels{pc});
             else
@@ -337,9 +346,21 @@ methods
             end
         end
         % edge information
-        edgefmtstring = 'EDGE %d %d %d %20.10f\n';
-        for ec = 1:size(NT.edgenodes)
-            fprintf(of,edgefmtstring,ec, NT.edgenodes(ec,:), NT.edgelens(ec));
+        nev = size(NT.edgevals,2);
+        if(nev > 0 && opt.WRITEEVS == true)
+            edgefmtstring = "EDGE %d %d %d %20.10f";
+            for ev = 1:nev
+                edgefmtstring = edgefmtstring+" %20.10f";
+            end
+            edgefmtstring = edgefmtstring+"\n";
+            for ec = 1:size(NT.edgenodes)
+                fprintf(of,edgefmtstring,ec, NT.edgenodes(ec,:), NT.edgelens(ec), NT.edgevals(ec,:));
+            end
+        else
+            edgefmtstring = "EDGE %d %d %d %20.10f\n";
+            for ec = 1:size(NT.edgenodes)
+                fprintf(of,edgefmtstring,ec, NT.edgenodes(ec,:), NT.edgelens(ec));
+            end
         end
         
         % independent cycles as a list of edges
@@ -811,7 +832,7 @@ methods
                      if (dim==2)
                          edgeplotH(ec) = plot(path(:,1)*scl,path(:,2)*scl,'Color',opt.edgecolor(ec,:),opt.edgeplotopt{:});
                      else
-                         edgeplotH(ec) = plot3(path(:,1)*scl,path(:,2)*scl,path(:,3)*scl,'k.-',opt.edgeplotopt{:});
+                         edgeplotH(ec) = plot3(path(:,1)*scl,path(:,2)*scl,path(:,3)*scl,'Color',opt.edgecolor(ec,:),opt.edgeplotopt{:});
                      end
                      
                      % label the edge graphics object with the
@@ -835,7 +856,7 @@ methods
                      if (dim==2)
                          plot(nodepos([p1,p2],1)*scl,nodepos([p1,p2],2)*scl,'Color',opt.edgecolor(ec,:),opt.edgeplotopt{:});
                      else
-                         plot3(nodepos([p1,p2],1)*scl,nodepos([p1,p2],2)*scl,nodepos([p1,p2],3)*scl,'k',opt.edgeplotopt{:});
+                         plot3(nodepos([p1,p2],1)*scl,nodepos([p1,p2],2)*scl,nodepos([p1,p2],3)*scl,'Color',opt.edgecolor(ec,:),opt.edgeplotopt{:});
                      end
                  end
                  hold all
