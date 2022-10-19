@@ -667,12 +667,15 @@ methods
 % 
 %      end
      
-     function outputPDB(NT,outfile,scl)
+         function outputPDB(NT,outfile,scl,sclval)
         %% output network as pdb formatted file
         % tracing along edge paths
                 
         if (~exist('scl','var'))
             scl = 10;
+        end
+        if (~exist('sclval','var'))
+            sclval = 1;
         end
         
         if (isempty(NT.edgepath))
@@ -703,9 +706,14 @@ methods
         for nc = 1:NT.nnode           
             name = 'N';            
             
+            if (~isempty(NT.edgevals))
+                val = mean(NT.edgevals(NT.nodeedges(nc,1:NT.degrees(nc))));
+            end
+            
+            
             pos = scl*NT.nodepos(nc,:);
             fprintf(of,'HETATM%5d%5s SSN X   0    %8.3f%8.3f%8.3f%6.2f%6.2f%13s\n',...
-                nc,name,pos,1,1,'C');
+                nc,name,pos,1,val*sclval,'C');
             
             % keep track of all connections for this node
             connections(nc,1) = nc;            
@@ -741,13 +749,17 @@ methods
             name = 'EP';
             n1 = NT.edgenodes(ec,1); n2 = NT.edgenodes(ec,2);
             
+            if (~isempty(NT.edgevals))
+                val = NT.edgevals(ec);
+            end
+            
             edgepath = NT.edgepath{ec};
             for cc = 2:size(edgepath,1)-1  
                 ind = beadind{ec}(cc);
-                pos = scl*edgepath(cc,:);
+                pos = scl*edgepath(cc,:);                               
                 
                 fprintf(of,'HETATM%5d%5s SSN X   0    %8.3f%8.3f%8.3f%6.2f%6.2f%13s\n',...
-                         ind,name,pos,1,1,'C');
+                         ind,name,pos,1,val*sclval,'C');
                 
                 if (cc==2)
                     con1 = n1;
@@ -773,6 +785,8 @@ methods
         
         fclose(of);
      end
+
+    
      
      function [nodeplotH,edgeplotH] = plotNetwork(NT,options)
          
