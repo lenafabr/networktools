@@ -18,12 +18,14 @@ rectpoly = [rectangle(1) rectangle(2); rectangle(1)+rectangle(3) rectangle(2);..
     rectangle(1)+rectangle(3) rectangle(2)+rectangle(4); rectangle(1) rectangle(2)+rectangle(4); ...
     rectangle(1) rectangle(2)];
 
+
+
 if (starthex)
     %% start with hexagonal lattice
     
     R = sqrt((rectangle(3)/2)^2 + (rectangle(4)/2)^2);
     hexwidth = 2*latsize*cos(30*pi/180);
-    nhex = round(2*R / hexwidth);
+    nhex = round(2*R / hexwidth)
     %%
     NThex = makeHexNetwork(nhex);
     NThex.nodepos = NThex.nodepos.*2*R;
@@ -31,17 +33,19 @@ if (starthex)
     % centering
     NThex.nodepos(:,1) = NThex.nodepos(:,1)-R+rectangle(1)+rectangle(3)/2;
     NThex.nodepos(:,2) = NThex.nodepos(:,2)-R+rectangle(2)+rectangle(4)/2;
-    NThex.plotNetwork()
+    NThex.plotNetwork();
     
     %% only keep nodes in the rectangle
     keepind = find(inpolygon(NThex.nodepos(:,1),NThex.nodepos(:,2),rectpoly(:,1),rectpoly(:,2)));
     NThex.keepNodes(keepind);
-    NThex.plotNetwork()
+%     NThex.plotNetwork()
     
     %% make random perturbations
     NThex.nodepos = NThex.nodepos + randn(NThex.nnode,2)*randshift;
     
     pts = NThex.nodepos;
+elseif (startrandom) % start with random set of points within some square boundary
+    mean(rectangle(3:4))/latsize
 else
     % start with square lattice
     nptx = ceil(rectangle(3)/latsize);
@@ -96,9 +100,9 @@ NT.keepNodes(keepind);
 NT.setupNetwork()
 NT.setEdgeLens();
 
-plot(pts(:,1),pts(:,2),'r.')
-hold all
-NT.plotNetwork()
-hold off
+% plot(pts(:,1),pts(:,2),'r.')
+% hold all
+% NT.plotNetwork()
+% hold off
 
 end
