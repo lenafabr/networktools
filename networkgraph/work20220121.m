@@ -1,11 +1,11 @@
 % play around with dendritic tree
 
 %% load data
-origimgfile =  '../dendriticmito/imgData/MAX_6.211020-HS_brain9_25min.tif';
+origimgfile =  '../../dendriticmito/imgData/MAX_6.211020-HS_brain9_25min.tif';
 img = imread(origimgfile);
 img = img(:,:,1);
 
-load('../dendriticmito/imgData/6.211020-HS_brain9_25min_network.mat','NT')
+load('../../dendriticmito/imgData/6.211020-HS_brain9_25min_network.mat','NT')
 
 %%
 load('~/proj/dendriticmito/results/workspace_filteredNT_20210817.mat')

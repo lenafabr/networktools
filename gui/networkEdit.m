@@ -22,7 +22,7 @@ function varargout = networkEdit(varargin)
 
 % Edit the above text to modify the response to help networkEdit
 
-% Last Modified by GUIDE v2.5 18-Aug-2022 14:54:39
+% Last Modified by GUIDE v2.5 04-Nov-2022 14:49:26
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -220,7 +220,7 @@ step
 
 function dispNetWithImage()
 global newf NTobj imgObj plotoptObj nodeplotH edgeplotH imageH selNodes;
-    
+        
     try
         delete(nodeplotH)
         for lc = 1:length(edgeplotH)
@@ -810,6 +810,8 @@ function pushbuttonWidthCalc_Callback(hObject, eventdata, handles)
     set(handles.pushbuttonWidthCancel,'Enable','off');  
     set(handles.pushbuttonWidthCalc,'Enable','off'); 
     set(handles.pushbuttonWidthMeas,'Enable','on');
+    
+    disp('Width info for each measurement: width, distance along edge, 1st pt xy, 2nd pt xy')
 return
 
 function pushbuttonWidthCancel_Callback(hObject, eventdata, handles)
@@ -1192,6 +1194,8 @@ function pushbuttonFilterActive_Callback(hObject, eventdata, handles)
         NTobj);
         
     NTlocal = getNTlocal(NTobj);
+    
+    dispNetWithImage() 
 return
 
 function filterActiveNetwork(newf, nodepos, edgenodes,...
@@ -1291,3 +1295,44 @@ global newf guilock
     figure(newf)
     set(gcf,'Pointer','Arrow');
 return
+
+
+% --- Executes on button press in pushbuttonColorByDegree.
+function pushbuttonColorByDegree_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbuttonColorByDegree (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+global NTlocal newf NTobj
+
+nedge = size(NTlocal.edgenodes,1);
+nnode = size(NTlocal.nodepos,1);
+degs = zeros(nnode,1);
+for ec = 1:nedge
+    if (NTlocal.edgeactive(ec))
+        n1 = NTlocal.edgenodes(ec,1);
+        n2 = NTlocal.edgenodes(ec,2);
+        if (NTlocal.nodeactive(n1)); degs(n1) = degs(n1)+1; end
+        if (NTlocal.nodeactive(n2)); degs(n2) = degs(n2)+1; end
+    end
+end
+
+colors = lines(max(degs));
+colors(1,:) = colors(1,:)*1.5;
+
+figure(newf)
+scatter = findobj(gca,'Type','scatter');
+
+for i=1:nnode
+    if (degs(i)>0)
+        scatter.CData(i,:) = colors(degs(i),:);
+    end
+end
+
+return
+
+% --- If Enable == 'on', executes on mouse press in 5 pixel border.
+% --- Otherwise, executes on mouse press in 5 pixel border or over pushbuttonColorByDegree.
+function pushbuttonColorByDegree_ButtonDownFcn(hObject, eventdata, handles)
+% hObject    handle to pushbuttonColorByDegree (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
