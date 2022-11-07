@@ -346,7 +346,7 @@ end
 clear smoothedges
 for ec = 1:length(cleanedges)
     edge = cleanedges{ec};
-    param = arclenparam(edge');
+    param = arclenparam(edge);
     nstep = ceil(param(end)/edgestep);
     newparam = linspace(param(1),param(end),nstep);
     

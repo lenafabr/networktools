@@ -19,8 +19,9 @@ properties
     nodelabels % string label for each node (permeability or reservoir)
     nodevals
     edgevals
-    % used for gui only
-    
+    rootnode
+
+    % used for gui only    
     loops
     Name
     
@@ -42,6 +43,8 @@ methods
         NT.maxdeg = 10; % maximum allowed degree              
         NT.loops = [];
         NT.Name = '';
+        NT.rootnode = NaN;
+
         % keep track of edge-edge connectivity?
         NT.use_edgeedge=true;
         
@@ -775,7 +778,7 @@ methods
              if (isfield(options,'plotoverimage') & options.plotoverimage)
                  % reset defaults for plotting over a BW image
                  opt.nodesize =20;
-                 opt.nodecolor = [1 0 0]                 
+                 opt.nodecolor = [1 0 0];                 
                  opt.edgeplotopt = {'LineWidth',1,'Color','g'};
             end
              

@@ -22,7 +22,7 @@ function varargout = networkEdit(varargin)
 
 % Edit the above text to modify the response to help networkEdit
 
-% Last Modified by GUIDE v2.5 04-Nov-2022 14:49:26
+% Last Modified by GUIDE v2.5 06-Nov-2022 08:43:19
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -1005,8 +1005,11 @@ return
 function pushbuttonMerge_Callback(hObject, eventdata, handles)
     global newf NTlocal selNodes selEdges guilock
 
-    if isempty(selNodes)
-        return
+    % merging all degree 2 nodes?
+    mergeall = handles.checkboxMergeAll.Value;
+
+    if isempty(selNodes)& ~mergeall
+            return    
     end
     
     if ~NTlocal.filtered
@@ -1034,8 +1037,19 @@ function pushbuttonMerge_Callback(hObject, eventdata, handles)
     if (guilock)
         disp('Cannot merge, gui is locked. Finish previous operation.')
         return
+    end           
+
+    if (mergeall)
+        % select all degree 2 nodes
+        nnode = size(NTlocal.nodepos,1);
+        degrees = getDegrees(NTlocal.edgenodes, ...
+            length(NTlocal.nodeactive), NTlocal.edgeactive, 1:nnode);        
+        isSel = false(1,nnode);
+        isSel(selNodes) = true;
+        isSel(degrees==2) = true;
+        selNodes = find(isSel);
     end
-    
+
     figure(newf)
     StartAction(handles, 'Merging edges...');  
     try
@@ -1129,6 +1143,11 @@ function pushbuttonMerge_Callback(hObject, eventdata, handles)
             NTlocal.edgepath{Edges(1)} = newpath;            
         end
         
+        % clear selected nodes 
+        selNodes = [];
+        % local network topology has changed
+        NTlocal.filtered = 0;
+
     catch exception
         guilock = false;
         disp(getReport(exception))
@@ -1185,25 +1204,26 @@ return
 function pushbuttonFilterActive_Callback(hObject, eventdata, handles)
     global newf NTobj NTlocal edgeplotH guilock
     
-    if NTlocal.filtered == true
-        return;
+    if ~(NTlocal.filtered)
+
+        filterActiveNetwork(newf, NTlocal.nodepos, NTlocal.edgenodes,...
+            NTlocal.nodeactive, NTlocal.edgeactive, NTlocal.edgepath,...
+            NTobj);
+
+        NTlocal = getNTlocal(NTobj);
     end
-    
-    filterActiveNetwork(newf, NTlocal.nodepos, NTlocal.edgenodes,...
-        NTlocal.nodeactive, NTlocal.edgeactive, NTlocal.edgepath,...
-        NTobj);
-        
-    NTlocal = getNTlocal(NTobj);
-    
+
     dispNetWithImage() 
 return
 
-function filterActiveNetwork(newf, nodepos, edgenodes,...
+function mapall2act = filterActiveNetwork(newf, nodepos, edgenodes,...
                                   nodeact, edgeact, edgepath, NT)
     % from a full list of nodes and edges (some inactive)
     % filter out only the active ones and make a clean network obj
 
     %NT = NetworkObj();
+
+    prevrootnode = NT.rootnode;
 
     % copy over active node positions
     NT.nodepos = nodepos(nodeact,:);
@@ -1224,12 +1244,26 @@ function filterActiveNetwork(newf, nodepos, edgenodes,...
     
     % copy over active edge paths
     NT.edgepath = edgepath(edgeact);
+
+    % copy over edge widths
+    NT.edgewidth = NT.edgewidth(edgeact);
     
     % set up all the other arrays in the network
     NT.setupNetwork();
     
     % deal with cumulative and total edge lengths
     NT.setCumEdgeLen(1:NT.nedge, true);
+
+    % update root node
+    if (~isnan(prevrootnode))
+        NT.rootnode = mapall2act(prevrootnode);
+
+        % update directionality info
+        isset = false(NT.nedge,1);
+        wasreversed = false(NT.nedge,1);
+        [isset,wasreversed] = directedTreeEdges(NT,NT.rootnode,isset,wasreversed);
+    end
+
 return
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1336,3 +1370,95 @@ function pushbuttonColorByDegree_ButtonDownFcn(hObject, eventdata, handles)
 % hObject    handle to pushbuttonColorByDegree (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
+
+% --- Executes on button press in ShowLoops.
+function ShowLoops_Callback(hObject, eventdata, handles)
+% hObject    handle to ShowLoops (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+global newf NTlocal NTobj
+
+% make full network object
+NTcur = copy(NTobj);
+filterActiveNetwork(newf, NTlocal.nodepos, NTlocal.edgenodes,...
+    NTlocal.nodeactive, NTlocal.edgeactive, NTlocal.edgepath,...
+    NTcur);
+
+% set up a connectivity matrix
+nnode = size(NTlocal.nodepos,1);
+nedge = size(NTlocal.edgenodes,1);
+A = zeros(nnode,nnode);
+for ec = 1:nedge
+    if (NTlocal.edgeactive(ec,:))
+        n1 = NTlocal.edgenodes(ec,1); n2 = NTlocal.edgenodes(ec,2);
+        A(n1,n2) = 1;
+        A(n2,n1) = 1;
+    end
+end
+% make into a graph structure
+NTgraph = graph(A);
+
+cycles = cyclebasis(NTgraph);
+cycleNodes = horzcat(cycles{1:end});
+
+figure(newf)
+scatter = findobj(gca,'Type','scatter');
+
+for i=cycleNodes
+    scatter.CData(i,:) = [0,0,1];
+end
+
+return
+
+
+% --- Executes on button press in checkboxMergeAll.
+function checkboxMergeAll_Callback(hObject, eventdata, handles)
+% hObject    handle to checkboxMergeAll (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkboxMergeAll
+
+
+% --- Executes on button press in pushbuttonSetParentNode.
+function pushbuttonSetParentNode_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbuttonSetParentNode (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+global NTobj NTlocal selNodes newf
+
+
+% set the parent node to the (single) selected node
+if (isempty(selNodes))
+    handles.signal.String = 'No nodes selected. Cannot set parent node.';
+    return
+elseif (length(selNodes)>1)
+    handles.signal.String = 'Multiple nodes selected. Cannot set parent node.';
+    return
+end
+
+
+% Update the original network structure. 
+locrootnode = selNodes(1); % local index of root node
+
+mapall2act = filterActiveNetwork(newf, NTlocal.nodepos, NTlocal.edgenodes,...
+        NTlocal.nodeactive, NTlocal.edgeactive, NTlocal.edgepath,...
+        NTobj);
+
+% new index of root node
+rootnode = mapall2act(locrootnode);
+handles.signal.String = sprintf('Set root node in original network object: %d',rootnode);
+NTobj.rootnode = rootnode;
+selNodes = [];
+
+NTlocal = getNTlocal(NTobj);   
+dispNetWithImage() 
+
+% reverse edge directions to make network into a directed tree
+% starting from the root node
+isset = false(NTobj.nedge,1);
+wasreversed = false(NTobj.nedge,1);
+[isset,wasreversed] = directedTreeEdges(NTobj,rootnode,isset,wasreversed);
+handles.signal.String = sprintf('Set root node in original network object: %d. Set directed edges.',rootnode);
+return
