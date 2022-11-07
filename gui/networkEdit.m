@@ -22,7 +22,7 @@ function varargout = networkEdit(varargin)
 
 % Edit the above text to modify the response to help networkEdit
 
-% Last Modified by GUIDE v2.5 06-Nov-2022 08:43:19
+% Last Modified by GUIDE v2.5 06-Nov-2022 22:45:27
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -1204,15 +1204,18 @@ return
 function pushbuttonFilterActive_Callback(hObject, eventdata, handles)
     global newf NTobj NTlocal edgeplotH guilock
     
-    if ~(NTlocal.filtered)
+    % convert the current active network in the GUI into the workspace
+    % object
 
-        filterActiveNetwork(newf, NTlocal.nodepos, NTlocal.edgenodes,...
+    %if ~(NTlocal.filtered)
+
+     filterActiveNetwork(newf, NTlocal.nodepos, NTlocal.edgenodes,...
             NTlocal.nodeactive, NTlocal.edgeactive, NTlocal.edgepath,...
             NTobj);
 
-        NTlocal = getNTlocal(NTobj);
-    end
-
+     % also replot the network in the object
+     NTlocal = getNTlocal(NTobj);
+    %end
     dispNetWithImage() 
 return
 
@@ -1462,3 +1465,19 @@ wasreversed = false(NTobj.nedge,1);
 [isset,wasreversed] = directedTreeEdges(NTobj,rootnode,isset,wasreversed);
 handles.signal.String = sprintf('Set root node in original network object: %d. Set directed edges.',rootnode);
 return
+
+
+% --- Executes on button press in pushbuttonReplotNetwork.
+function pushbuttonReplotNetwork_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbuttonReplotNetwork (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+global NTobj NTlocal 
+
+% replot the network in the GUI based on the current workspace object (in
+% NTobj)
+
+% also replot the network in the object
+NTlocal = getNTlocal(NTobj);
+%end
+dispNetWithImage()
