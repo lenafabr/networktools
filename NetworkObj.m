@@ -854,16 +854,22 @@ methods
                      
                      % label the edge graphics object with the
                      % corresponding index
+                     % only label if the edgepath is > 2 points long (consists not
+                     % just of endpoints)
                      if (~isempty(NT.edgepath) & opt.plotedgepath & opt.datatipindex)
-                         edgeplotH(ec).addprop('edgeind');                         
-                         edgeplotH(ec).edgeind = ec;
-                                                 
-                         dttemplate = edgeplotH(ec).DataTipTemplate;
-                         dttemplate.FontSize=6;
-                         dttemplate.DataTipRows(1).Value = ec*ones(size(NT.edgepath{ec},1),1);
-                         dttemplate.DataTipRows(1).Label = '';
-                         dttemplate.DataTipRows(2:end) = [];
-                         dttemplateset = true;                         
+                         if (size(NT.edgepath{ec},1)>2)
+                             edgeplotH(ec).addprop('edgeind');
+                             edgeplotH(ec).edgeind = ec;
+                             
+                             dttemplate = edgeplotH(ec).DataTipTemplate;
+                             dttemplate.FontSize=6;
+                             dttemplate.DataTipRows(1).Value = ec*ones(size(NT.edgepath{ec},1),1);
+                             dttemplate.DataTipRows(1).Label = '';
+                             dttemplate.DataTipRows(2:end) = [];
+                             dttemplateset = true;
+                         else
+                             edgeplotH(ec).PickableParts = 'none';
+                         end
                      end
                      
                      % turn off datatips for edge paths

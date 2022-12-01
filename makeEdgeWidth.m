@@ -1,6 +1,6 @@
-function widthinfo = makeEdgeWidth(NT,ec,w)
+function widthinfo = makeEdgeWidth(NT,ec,w,d)
     % width info line defining the width of a given edge
-    % assuming measurement is made at center of the edge    
+    % default if d is not specified: assume measurement is made at center of the edge    
     % cumulative lengths array must be previously set
     % does *not* alter NT object directly
     
@@ -8,7 +8,9 @@ function widthinfo = makeEdgeWidth(NT,ec,w)
     cum = NT.cumedgelen{ec};   
 
     % position along edge
-    d = NT.edgelens(ec)/2;
+    if (~exist('d','var'))
+        d = NT.edgelens(ec)/2;
+    end
     edgepos = interp1(cum,0:(length(cum)-1),d);
     ind = floor(edgepos)+1;
     frac = mod(edgepos,1);
