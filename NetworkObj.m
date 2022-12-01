@@ -711,6 +711,8 @@ methods
             
             if (~isempty(NT.edgevals))
                 val = mean(NT.edgevals(NT.nodeedges(nc,1:NT.degrees(nc))));
+            else
+                val = 1;
             end
             
             
