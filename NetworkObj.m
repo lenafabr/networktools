@@ -1023,6 +1023,8 @@ methods
          % this ensures directed trees stay directed and edge widths
          % for short edges (no intermediate nodes) are set by downstream
          % end-node width
+         % mergednodes stores all original nodes that went into the edge in
+         % the final network
         
          if (~exist('outedgeonly','var'))
              outedgeonly = false;
