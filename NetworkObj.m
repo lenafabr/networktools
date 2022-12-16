@@ -569,6 +569,9 @@ methods
         if (~exist('whichedges','var'))
             whichedges = 1:NT.nedge;
         end
+        if (size(whichedges,1)>size(whichedges,2))
+            whichedges = whichedges';
+        end
         
         ipts = linspace(0,1,npt)'; % interpolation points
         for ec = whichedges
@@ -1009,6 +1012,146 @@ methods
          end
          
          NT.setCumEdgeLen()
+         
+     end
+     
+     function mergednodes = mergeAllEdgePaths(NT,outedgeonly)
+         %% remove all degree 2 nodes from the network, converting to longer
+         % edges with defined edgepath instead
+         % if outedgeonly is set (default=false), then only trace out
+         % outgoing edges for each node. 
+         % this ensures directed trees stay directed and edge widths
+         % for short edges (no intermediate nodes) are set by downstream
+         % end-node width
+        
+         if (~exist('outedgeonly','var'))
+             outedgeonly = false;
+         end
+         
+         % find all nodes not of degree 2
+         degnot2 = find(NT.degrees~=2);
+         
+         dokeep = true(1,NT.nnode);
+         havechecked = false(1,NT.nedge);
+         
+         mergednodes = {};
+         
+         % start with root node if set
+         if (~isnan(NT.rootnode))
+             startnodes = [NT.rootnode;degnot2(degnot2~=NT.rootnode)];
+         else
+             startnodes = degnot2;
+         end
+         
+         for ncc = 1:length(startnodes)
+             nc = startnodes(ncc);
+                         
+             for bc =1:NT.degrees(nc)
+                 nclist= [nc]; edgelist = []; edgedir = [];
+                 
+                 % go to each neighbor of this node
+                 ncnext = NT.nodenodes(nc,bc);
+                 
+                 ec = NT.nodeedges(nc,bc);
+                 % already got rid of nodes in this direction?
+                 if (havechecked(ec)); continue; end                    
+                 
+                 nclist(end+1) = ncnext;                 
+                 degnext = NT.degrees(ncnext);
+                 havechecked(ec) = true;
+                 
+                 % list of original edges merging into the big one
+                 ecnext = NT.nodeedges(nc,bc);
+                 edgelist(end+1) = ecnext;                 
+                 % direction of original edges
+                 if (NT.edgenodes(ecnext,1) ==nc)
+                     edgedir(end+1) = 1; % outgoing edge
+                 else
+                     edgedir(end+1) = -1; % incoming edge
+                 end
+                 
+                 if (outedgeonly & edgedir(end)==-1)
+                     % only following along outgoing edges
+                     havechecked(ec) = false;
+                     continue
+                 end
+                 
+                 if (degnext~=2)
+                     % have reached a junction or terminus
+                     continue
+                 end
+                 
+                  % keep building up edge
+                 while degnext==2
+                     % keep building up edge                    
+                     bc2 = find(NT.nodenodes(ncnext,1:degnext)~=nclist(end-1));
+                     % list of original edges merging into the big one
+                     ecnext = NT.nodeedges(ncnext,bc2);
+                     edgelist(end+1) = ecnext;
+                     havechecked(ecnext) = true;
+                     
+                     ncnext = NT.nodenodes(ncnext,bc2);
+                     degnext = NT.degrees(ncnext);
+                     nclist(end+1) = ncnext; 
+                    
+                     % direction of original edges
+                     if (bc2==1)
+                         edgedir(end+1) = -1; % reverse direction
+                     else
+                         edgedir(end+1) = 1;
+                     end
+                 end
+                 
+                 % make a path for this edge
+                 path = NT.nodepos(nclist,:);
+                 
+                 % make new long edge
+                 ecnew = size(NT.edgenodes,1)+1;
+                 NT.edgenodes(ecnew,:) = [nclist(1) nclist(end)];
+                 
+                 % make a path for this edge
+                 NT.edgepath{ecnew} = NT.nodepos(nclist,:);
+                 
+                 NT.setCumEdgeLen(ecnew);
+                 NT.edgelens(ecnew) = NT.cumedgelen{ecnew}(end);
+                 NT.edgevals(ecnew) = 0;
+                 
+                 % copy over width measurements
+                 if (~isempty(NT.edgewidth))
+                     NT.edgewidth{ecnew} = [];
+                     for ecc = 1:length(edgelist)
+                         ec = edgelist(ecc);
+                         
+                         start = NT.cumedgelen{ecnew}(ecc);
+                         if (edgedir(ecc)>0)
+                             addwidths =  NT.edgewidth{ec};
+                             addwidths(:,2) = addwidths(:,2)+start;
+                         else
+                             addwidths =  flipud(NT.edgewidth{ec});
+                             addwidths(:,2) = NT.edgelens(ec)-addwidths(:,2); % flip edge direction
+                             addwidths(:,2) = addwidths(:,2)+start;
+                         end
+                         NT.edgewidth{ecnew} = [ NT.edgewidth{ecnew};addwidths];
+                     end
+                 end
+                 
+                 % keep track of nodes that got merged away to make this
+                 % new edge
+                 mergednodes{size(NT.edgenodes,1)} = nclist;
+                 
+                 % mark intermediate nodes for removal
+                 dokeep(nclist(2:end-1)) = false;
+             end             
+         end
+         
+         % update connectivity info
+         NT.setupNetwork();
+         
+         % get rid of excess nodes
+         keepnodes = find(dokeep);
+         [mapold2new,mapnew2oldedge] = NT.keepNodes(keepnodes);
+         
+         mergednodes = mergednodes(mapnew2oldedge);
          
      end
 end
