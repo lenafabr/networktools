@@ -65,7 +65,8 @@ NT.setupNetwork()
 
 % NT.plotNetwork()
 
-
+% edgevals tracks which edges are periodicity connections
+NT.edgevals = zeros(NT.nedge,1);
 %% connect boundary points together:
 nedge = NT.nedge;
 % first row to final row (bottom to top)
@@ -78,6 +79,8 @@ for pc = 1:length(nodesRow1)
     NT.edgenodes(end+1,:) = [nodesRow1(pc) nodesRowN(pc)];
     NT.edgelens(end+1) = NT.edgelens(1); % edgelengths will be the same as all other edges
     NT.edgepath{end+1} = [NT.nodepos(nodesRow1(pc),:) ; NT.nodepos(nodesRowN(pc),:)];
+    ec = size(NT.edgenodes,1);
+    NT.edgevals(ec) = 2;
 end
 NT.nedge=size(NT.edgenodes,1);
 
@@ -90,9 +93,13 @@ for pc=1:length(nodesCol1)
     NT.edgenodes(end+1,:) = [nodesCol1(pc) nodesColN(pc)];
     NT.edgelens(end+1) = NT.edgelens(1); % edgelengths will be the same as all other edges
     NT.edgepath{end+1} = [NT.nodepos(nodesCol1(pc),:) ; NT.nodepos(nodesColN(pc),:)];
+    ec = size(NT.edgenodes,1);
+    NT.edgevals(ec) = 1;
 end
 NT.nedge=size(NT.edgenodes,1);
+NT.edgevals(end+1:NT.nedge) = 0;
 NT.setupNetwork % don't reset edgelengths, but update degrees, anything else that may have been missed
+
 
 % how many new edges appended at the end. These are real edges, but their
 % spatial dependence is wonky, have to be careful with them

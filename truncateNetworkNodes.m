@@ -23,6 +23,7 @@ end
 
 newnodepos = nodepos(keepind,:);
 newedgenodes = [];
+mapnew2oldedge = [];
 ct = 0;
 for ec = 1:size(edgenodes,1)
     
