@@ -1162,5 +1162,21 @@ methods
          mergednodes = mergednodes(mapnew2oldedge);
          
      end
+     
+     function scaleCoords(NT,scl)
+        % multiply all spatial coordinates by scl
+         
+        NT.nodepos = NT.nodepos*scl;
+        for ec = 1:NT.nedge
+            if (~isempty(NT.edgepath))
+                NT.edgepath{ec} = NT.edgepath{ec}*scl;
+            end
+            if (~isempty(NT.cumedgelen))
+                NT.cumedgelen{ec} =NT.cumedgelen{ec}*scl;
+            end
+        end
+        NT.edgelens = NT.edgelens*scl;
+     end
 end
+
 end

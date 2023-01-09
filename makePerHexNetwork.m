@@ -105,4 +105,34 @@ NT.setupNetwork % don't reset edgelengths, but update degrees, anything else tha
 % spatial dependence is wonky, have to be careful with them
 newedge=NT.nedge-nedge;
 
+
+%% update edge paths for periodic edges
+
+NT.interpolateEdgePaths(3);
+NT.setCumEdgeLen(1:NT.nedge,true);
+
+netw = max(NT.nodepos(:,1)) - min(NT.nodepos(:,1));
+neth = max(NT.nodepos(:,2)) - min(NT.nodepos(:,2));
+edgelen = min(NT.edgelens);
+%
+for ec = 1:NT.nedge
+    if (NT.edgevals(ec)>0)
+        n1= NT.edgenodes(ec,1);
+        n2 = NT.edgenodes(ec,2);
+        otherend = NT.nodepos(n2,:);
+        
+        if (NT.edgevals(ec)==1) % periodic horizontal
+            otherend(1) = otherend(1)-netw-edgelen*cos(30*pi/180);
+            %norm(otherend-NT.nodepos(n1,:));
+        elseif (NT.edgevals(ec)==2) % periodic vertical
+            otherend(2) = otherend(2)-neth-edgelen;
+        end
+        mid = (otherend+NT.nodepos(n1,:))/2;
+        NT.edgepath{ec} = [NT.nodepos(n1,:); mid; otherend];
+        newlen = norm(otherend-NT.nodepos(n1,:));
+        NT.cumedgelen{ec} = [0,newlen/2,newlen];
+        NT.edgelens(ec) = newlen;
+        %norm(otherend-NT.nodepos(n1,:))
+    end
+end
 end
