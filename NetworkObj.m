@@ -920,16 +920,23 @@ methods
          hold off
      end
      
-     function reinterpolateEdgePaths(NT,dxwant)
+     function interplen = reinterpolateEdgePaths(NT,dxwant,options)
          % reinterpolate the edge paths to have points
          % at *approximately* the desired spacing
+         
+         opt = struct();
+         opt.interpmethod = 'linear';
+         
+         if (exist('options','var'))
+             opt = copyStruct(options,opt);
+         end
          
          if (isempty(NT.edgepath))
              error('no edge paths computed')
          end
          
          NT.setCumEdgeLen();                  
-         
+         interplen = {};
          for ec = 1:NT.nedge
              path = NT.edgepath{ec};
              cumlen = NT.cumedgelen{ec};
@@ -938,8 +945,9 @@ methods
              % will have slightly smaller segments if not integer multiple
              nseg = ceil(cumlen(end)/dxwant);
              interpx = linspace(0,cumlen(end),nseg+1);
+             interplen{ec} = interpx;
              
-             newpts = interp1(NT.cumedgelen{ec},path,interpx);
+             newpts = interp1(NT.cumedgelen{ec},path,interpx,opt.interpmethod);
              NT.edgepath{ec} = newpts;
          end
          
