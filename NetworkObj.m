@@ -251,6 +251,8 @@ methods
         % mapnew2old(i) = index of new node i in the old node list
         % mapold2new(i) = index of old node i in new node list
         
+        % for nodes: mapnew2old would be = keepind
+        
         [newnodepos,newedgenodes,mapold2new,mapnew2oldedge] = truncateNetworkNodes(keepind,NT.nodepos,NT.edgenodes);
         
         NT.nodepos = newnodepos;
@@ -901,7 +903,7 @@ methods
                  nodeplotH = scatter(nodepos(opt.plotnodes,1)*scl,nodepos(opt.plotnodes,2)*scl,opt.nodesize(opt.plotnodes),opt.nodecolor(opt.plotnodes,:),opt.nodeplotopt{:});
              else
                  nodeplotH = scatter3(nodepos(opt.plotnodes,1)*scl,nodepos(opt.plotnodes,2)*scl,nodepos(opt.plotnodes,3)*scl,...
-                     opt.nodesize(opt.plotnodes),opt.nodeplotopt{:});
+                     opt.nodesize(opt.plotnodes),opt.nodecolor(opt.plotnodes,:),opt.nodeplotopt{:});
              end
              axis equal
              hold all
@@ -1055,6 +1057,7 @@ methods
          dokeep = true(1,NT.nnode);
          havechecked = false(1,NT.nedge);
          
+         % which nodes got merged away for each edge
          mergednodes = {};
          for ec = 1:NT.nedge
              mergednodes{ec} = [];
