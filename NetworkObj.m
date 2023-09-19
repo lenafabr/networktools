@@ -293,6 +293,10 @@ methods
         % add nodes to the network
         % connecting each to predefined old node indices
         nnew = size(nodepos,1);
+        
+        nnprev = NT.nnode;
+        neprev = NT.nedge;
+        
         nind = NT.nnode;
         eind = NT.nedge;            
         NT.nodepos = [NT.nodepos; nodepos];
@@ -308,7 +312,21 @@ methods
         end
         
         % set up other network info arrays, based on nodepos and edgenodes
-        NT.setupNetwork();
+        NT.setupNetwork();        
+        
+        if (~isempty(NT.nodevals)); NT.nodevals(nnprev+1:NT.nnode) = 0; end
+        if (~isempty(NT.edgevals)); NT.edgevals(neprev+1:NT.nedge) = 0; end        
+        if (~isempty(NT.nodelabels))
+            for nc = nnprev:NT.nnode
+                NT.nodelabels{nc} = '';                
+            end
+        end
+        if (~isempty(NT.edgewidth))
+            for ec= neprev:NT.nedge
+                NT.edgewidth{ec} = [];
+            end
+        end        
+        
     end
     
     function outputNetwork(NT,outfile,options)
