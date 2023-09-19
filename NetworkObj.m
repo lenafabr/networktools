@@ -916,7 +916,7 @@ methods
                  nodeplotH = scatter(nodepos(opt.plotnodes,1)*scl,nodepos(opt.plotnodes,2)*scl,opt.nodesize(opt.plotnodes),opt.nodecolor(opt.plotnodes,:),opt.nodeplotopt{:});
              else
                  nodeplotH = scatter3(nodepos(opt.plotnodes,1)*scl,nodepos(opt.plotnodes,2)*scl,nodepos(opt.plotnodes,3)*scl,...
-                     opt.nodesize(opt.plotnodes),opt.nodeplotopt{:});
+                     opt.nodesize(opt.plotnodes),opt.nodecolor(opt.plotnodes,:),opt.nodeplotopt{:});
              end
              axis equal
              hold all
