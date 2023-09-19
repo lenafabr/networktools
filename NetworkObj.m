@@ -869,10 +869,9 @@ methods
                      % only label if the edgepath is > 2 points long (consists not
                      % just of endpoints)
                      if (~isempty(NT.edgepath) & opt.plotedgepath & opt.datatipindex)
-                         if (size(NT.edgepath{ec},1)>2)
-                             edgeplotH(ec).addprop('edgeind');
+                          edgeplotH(ec).addprop('edgeind');
                              edgeplotH(ec).edgeind = ec;
-                             
+                         if (size(NT.edgepath{ec},1)>2)                                                         
                              dttemplate = edgeplotH(ec).DataTipTemplate;
                              dttemplate.FontSize=6;
                              dttemplate.DataTipRows(1).Value = ec*ones(size(NT.edgepath{ec},1),1);
@@ -1141,7 +1140,13 @@ methods
                  
                  NT.setCumEdgeLen(ecnew);
                  NT.edgelens(ecnew) = NT.cumedgelen{ecnew}(end);
-                 NT.edgevals(ecnew) = 0;
+                 if (~isempty(NT.edgevals))
+                     if (iscell(NT.edgevals))
+                         NT.edgevals{ecnew} = [];
+                     else
+                        NT.edgevals(ecnew) = 0;
+                     end
+                 end
                  
                  % copy over width measurements
                  if (~isempty(NT.edgewidth))
@@ -1152,11 +1157,15 @@ methods
                          start = NT.cumedgelen{ecnew}(ecc);
                          if (edgedir(ecc)>0)
                              addwidths =  NT.edgewidth{ec};
-                             addwidths(:,2) = addwidths(:,2)+start;
+                             if (~isempty(addwidths))
+                                addwidths(:,2) = addwidths(:,2)+start;
+                             end
                          else
                              addwidths =  flipud(NT.edgewidth{ec});
-                             addwidths(:,2) = NT.edgelens(ec)-addwidths(:,2); % flip edge direction
-                             addwidths(:,2) = addwidths(:,2)+start;
+                             if (~isempty(addwidths))
+                                addwidths(:,2) = NT.edgelens(ec)-addwidths(:,2); % flip edge direction
+                                addwidths(:,2) = addwidths(:,2)+start;
+                             end
                          end
                          NT.edgewidth{ecnew} = [ NT.edgewidth{ecnew};addwidths];
                      end

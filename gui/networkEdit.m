@@ -22,7 +22,7 @@ function varargout = networkEdit(varargin)
 
 % Edit the above text to modify the response to help networkEdit
 
-% Last Modified by GUIDE v2.5 06-Nov-2022 22:45:27
+% Last Modified by GUIDE v2.5 19-Sep-2023 15:21:56
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -234,7 +234,10 @@ global newf NTobj imgObj plotoptObj nodeplotH edgeplotH imageH selNodes;
         if isempty(imageH)
             imageexists = false;
         else
-            imageexists = isvalid(imageH);
+            imageexists = isgraphics(imageH);
+            if (imageexists)
+                imageexists = isvalid(imageH);
+            end
         end
     else
         imageexists = false;
@@ -255,7 +258,7 @@ global newf NTobj imgObj plotoptObj nodeplotH edgeplotH imageH selNodes;
     newf=figure(1);
     hold on   
     plotoptObj.datatipindex = true;
-    [nodeplotH,edgeplotH] = NTobj.plotNetwork(plotoptObj);
+    [nodeplotH,edgeplotH] = NTobj.plotNetwork(plotoptObj);    
     hold off
     
     if ~isempty(selNodes)
@@ -642,7 +645,8 @@ function pushbuttonAddEdge_Callback(hObject, eventdata, handles)
         i = size(NTlocal.edgenodes,1) + 1;
 
         NTlocal.edgenodes(i,:) = [ind1 ind2];
-        NTlocal.edgepath{i} = [x y];        
+        NTlocal.edgepath{i} = [x y];  
+        NTlocal.edgewidth{i} = [];
         NTlocal.edgeactive(i) = true;
         
         hold on
@@ -1040,6 +1044,8 @@ function pushbuttonMerge_Callback(hObject, eventdata, handles)
     end           
 
     if (mergeall)
+        %disp('Merging all edges is currently buggy. Do not use')
+        %return
         % select all degree 2 nodes
         nnode = size(NTlocal.nodepos,1);
         degrees = getDegrees(NTlocal.edgenodes, ...
