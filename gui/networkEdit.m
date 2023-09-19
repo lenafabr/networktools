@@ -132,7 +132,7 @@ varargout{1} = handles.output;
 % Manage menu
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function LoadData()
-    global newf NTobj NTlocal imgObj plotoptObj selNodes selEdges fileName
+    global newf NTobj NTlocal imgObj plotoptObj selNodes selEdges fileName imageH
 %     global imgCData0
     
     close(figure(1))

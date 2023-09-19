@@ -3,6 +3,9 @@ function widthinfo = makeEdgeWidth(NT,ec,w,d)
     % default if d is not specified: assume measurement is made at center of the edge    
     % cumulative lengths array must be previously set
     % does *not* alter NT object directly
+    % widthinfo is a 1x6 vector listing: width, position along edge where
+    % the width was calculated, x and y for first endpoint of width segment
+    % then x and y for second endpoint of width segment
     
     path = NT.edgepath{ec};
     cum = NT.cumedgelen{ec};   

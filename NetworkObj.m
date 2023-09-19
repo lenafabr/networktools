@@ -851,6 +851,11 @@ methods
                  if (~isempty(NT.edgepath) & opt.plotedgepath)
                      % plot curved paths of the edges
                      path = NT.edgepath{ec};
+                     if (isempty(path))
+                         n1 = NT.edgenodes(ec,1); n2 = NT.edgenodes(ec,2);
+                         path = [NT.nodepos(n1,:); NT.nodepos(n2,:)];
+                     end
+                     
                      if (dim==2)
                          edgeplotH(ec) = plot(path(:,1)*scl,path(:,2)*scl,'Color',opt.edgecolor(ec,:),opt.edgeplotopt{:});
                      else
@@ -1051,6 +1056,9 @@ methods
          havechecked = false(1,NT.nedge);
          
          mergednodes = {};
+         for ec = 1:NT.nedge
+             mergednodes{ec} = [];
+         end
          
          % start with root node if set
          if (~isnan(NT.rootnode))
