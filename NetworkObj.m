@@ -615,7 +615,10 @@ methods
         % get new node position
         shiftlen = NT.edgelens(ectarget)*breakfrac;
         newpos = interp1(NT.cumedgelen{ectarget},NT.edgepath{ectarget},shiftlen);
-        [~,ind] = min(abs(NT.cumedgelen{ectarget}-shiftlen));
+        % index that is right below the desired length
+        tmp = find(NT.cumedgelen{ectarget}<shiftlen);        
+        ind = max(tmp);
+        %[~,ind] = min(abs(NT.cumedgelen{ectarget}-shiftlen));
         
         nnode = NT.nnode; nedge = NT.nedge;
         NT.nodepos(nnode+1,:) = newpos;        
