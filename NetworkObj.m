@@ -607,7 +607,8 @@ methods
      function breakEdge(NT,ectarget,breakfrac,dosetup)
          % break up an edge in the network, creating a new degree-2 node along it
          % new node is located at fraction breakfrac along the edge
-        
+        % WARNING: does not currently save edgewidths
+
          if (~exist('dosetup','var'))
              dosetup = 1;
          end
@@ -624,6 +625,7 @@ methods
         NT.nodepos(nnode+1,:) = newpos;        
         % add a new edge
         NT.edgenodes(end+1,:) = [NT.edgenodes(ectarget,2),nnode+1];
+        NT.edgewidth{end+1} = [];
         % replace previous edge with one that goes to new node
         NT.edgenodes(ectarget,2) = nnode+1;
         
