@@ -629,6 +629,13 @@ methods
         % replace previous edge with one that goes to new node
         NT.edgenodes(ectarget,2) = nnode+1;
         
+        if (~isempty(NT.nodevals))
+            NT.nodevals(nnode+1) = 0;
+        end
+        if (~isempty(NT.nodelabels))
+            NT.nodelabels{nnode+1} = '';
+        end
+
         if (dosetup)
             % reset network
             NT.setupNetwork();
@@ -652,6 +659,13 @@ methods
             % cumedgelen....)
             NT.edgelens(nedge+1) = NT.cumedgelen{nedge+1}(end);
             NT.edgelens(ectarget) = NT.cumedgelen{ectarget}(end);
+
+            if (~isempty(NT.edgevals))
+                NT.edgevals(nedge+1) = 0;
+            end
+            if (~isempty(NT.edgewidth))
+                NT.edgewidth{nedge+1} = {};
+            end
 
         end
      end
