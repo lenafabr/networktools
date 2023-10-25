@@ -826,6 +826,7 @@ methods
          opt.labels = 0;
          opt.nodeplotopt = {'filled'};
          opt.nodesize = 20;
+         opt.edgestyle = '-';
          opt.edgecolor = [0 0 0];
          opt.nodecolor = [0 0 1];
          opt.plotnodes = 1:NT.nnode;
@@ -882,9 +883,9 @@ methods
                      end
                      
                      if (dim==2)
-                         edgeplotH(ec) = plot(path(:,1)*scl,path(:,2)*scl,'Color',opt.edgecolor(ec,:),opt.edgeplotopt{:});
+                         edgeplotH(ec) = plot(path(:,1)*scl,path(:,2)*scl,opt.edgestyle,'Color',opt.edgecolor(ec,:),opt.edgeplotopt{:});
                      else
-                         edgeplotH(ec) = plot3(path(:,1)*scl,path(:,2)*scl,path(:,3)*scl,'Color',opt.edgecolor(ec,:),opt.edgeplotopt{:});
+                         edgeplotH(ec) = plot3(path(:,1)*scl,path(:,2)*scl,path(:,3)*scl,opt.edgestyle,'Color',opt.edgecolor(ec,:),opt.edgeplotopt{:});
                      end
                      
                      % label the edge graphics object with the
@@ -1098,6 +1099,9 @@ methods
              for bc =1:NT.degrees(nc)
                  nclist= [nc]; edgelist = []; edgedir = [];
                  
+                 % start new edge path
+                 path = NT.nodepos(nc,:);
+
                  % go to each neighbor of this node
                  ncnext = NT.nodenodes(nc,bc);
                  
@@ -1115,10 +1119,21 @@ methods
                  % direction of original edges
                  if (NT.edgenodes(ecnext,1) ==nc)
                      edgedir(end+1) = 1; % outgoing edge
+
+                     if (~isempty(NT.edgepath))
+                         newpath = NT.edgepath{ecnext}(2:end,:);
+                         path = [path; newpath];
+                     end
                  else
                      edgedir(end+1) = -1; % incoming edge
+
+
+                     if (~isempty(NT.edgepath))
+                         newpath = NT.edgepath{ecnext}(1:end-1,:);
+                         path = [path; flipud(newpath)];
+                     end
                  end
-                 
+
                  if (outedgeonly & edgedir(end)==-1)
                      % only following along outgoing edges
                      havechecked(ec) = false;
@@ -1144,22 +1159,37 @@ methods
                      nclist(end+1) = ncnext; 
                     
                      % direction of original edges
-                     if (bc2==1)
+                     if (NT.edgenodes(ecnext,1)==ncnext)
                          edgedir(end+1) = -1; % reverse direction
+
+                         if (~isempty(NT.edgepath))
+                             newpath = NT.edgepath{ecnext}(1:end-1,:);
+                             path = [path; flipud(newpath)];
+                         end
                      else
                          edgedir(end+1) = 1;
+
+                         if (~isempty(NT.edgepath))
+                             newpath = NT.edgepath{ecnext}(2:end,:);
+                             path = [path; newpath];
+                         end
                      end
+
+                
                  end
                  
                  % make a path for this edge
-                 path = NT.nodepos(nclist,:);
+                % path = NT.nodepos(nclist,:);
                  
                  % make new long edge
                  ecnew = size(NT.edgenodes,1)+1;
                  NT.edgenodes(ecnew,:) = [nclist(1) nclist(end)];
                  
                  % make a path for this edge
-                 NT.edgepath{ecnew} = NT.nodepos(nclist,:);
+                 %NT.edgepath{ecnew} = NT.nodepos(nclist,:);
+                 if (~isempty(NT.edgepath))
+                     NT.edgepath{ecnew} = path;
+                 end
                  
                  NT.setCumEdgeLen(ecnew);
                  NT.edgelens(ecnew) = NT.cumedgelen{ecnew}(end);
