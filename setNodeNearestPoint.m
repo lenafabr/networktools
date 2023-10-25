@@ -22,6 +22,7 @@ end
 elen = NT.edgelens(ecmin);
 if (breakfracmin*elen<minedgelen | (1-breakfracmin)*elen<minedgelen)
     % do not break network
+    display('cannot break here, edge is too short')
     return
 else
     % create a new point along the edge
