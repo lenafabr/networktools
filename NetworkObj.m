@@ -589,6 +589,11 @@ methods
         
         % npt = number of points to interpolate along each edge.
         
+        if NT.nedge==0
+            % no edges to interpolate
+            return
+        end
+
         if (~exist('whichedges','var'))
             whichedges = 1:NT.nedge;
         end
@@ -1168,6 +1173,9 @@ methods
                  while degnext==2
                      % keep building up edge                    
                      bc2 = find(NT.nodenodes(ncnext,1:degnext)~=nclist(end-1));
+                     if (length(bc2)>1)
+                         error('bad connection')
+                     end
                      % list of original edges merging into the big one
                      ecnext = NT.nodeedges(ncnext,bc2);
                      edgelist(end+1) = ecnext;
