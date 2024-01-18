@@ -270,7 +270,10 @@ methods
     
     function [mapnew2oldedge] = keepEdges(NT,keepind)        
         % keep only edges of a certain index        
-        
+        if (size(keepind,1)>size(keepind,2))
+            keepind = keepind';
+        end
+
         % mapping from new to old edge index
         mapnew2oldedge = zeros(1,nnz(keepind));
         ct = 0;
@@ -1083,6 +1086,8 @@ methods
          % end-node width
          % mergednodes stores all original nodes that went into the edge in
          % the final network
+         % WARNING: will always keep root node, even if it has degree 2
+
         
          if (~exist('outedgeonly','var'))
              outedgeonly = false;
