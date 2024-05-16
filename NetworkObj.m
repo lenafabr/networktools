@@ -176,6 +176,7 @@ methods
                 NT.edgelens(ec) = max(len,NT.edgelens(ec));                
             end
             NT.interpolateEdgePaths(2);
+            NT.setCumEdgeLen();
         end
             
         if (isempty(NT.nodelabels))
