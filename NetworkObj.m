@@ -1286,6 +1286,27 @@ methods
         end
         NT.edgelens = NT.edgelens*scl;
      end
+
+     function scaleCoords3D(NT,scl)
+         % scale all spatial coordinates by different amounts in the x, y,
+         % z dimensions. 
+         % scl(i) = um per pixel in the i dimension for i = 1,2,3
+         
+         for i = 1:size(NT.nodepos,2)
+             NT.nodepos(:,1) = NT.nodepos(:,i)*scl(i);             
+         end
+
+         for ec = 1:NT.nedge
+             for i = 1:size(NT.nodepos,2)
+                 if (~isempty(NT.edgepath))
+                     NT.edgepath{ec}(:,i) = NT.edgepath{ec}(:,i)*scl(i);
+                 end                
+             end
+         end
+
+         % update all edge lengths
+         NT.setCumEdgeLen(1:NT.nedge, true);
+     end
 end
 
 end
