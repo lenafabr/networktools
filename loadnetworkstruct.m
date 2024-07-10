@@ -59,6 +59,8 @@ while (ischar(tline))
             nodelabels{nums(1)} = '';
         end
     elseif(strcmpi(words(1),'EDGE'))
+        emptyind = cellfun(@(x) isempty(x), words);
+        words = words(~emptyind);
         nums= cellfun(@(i) str2num(i), words(2:end));
         edgenodes(nums(1),:) = nums(2:3);
         edgevals(nums(1),:) = nums(4:end);
