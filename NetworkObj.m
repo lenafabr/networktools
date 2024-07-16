@@ -1293,14 +1293,26 @@ methods
          % scl(i) = um per pixel in the i dimension for i = 1,2,3
          
          for i = 1:size(NT.nodepos,2)
-             NT.nodepos(:,1) = NT.nodepos(:,i)*scl(i);             
+             NT.nodepos(:,i) = NT.nodepos(:,i)*scl(i);             
          end
 
-         for ec = 1:NT.nedge
-             for i = 1:size(NT.nodepos,2)
-                 if (~isempty(NT.edgepath))
-                     NT.edgepath{ec}(:,i) = NT.edgepath{ec}(:,i)*scl(i);
-                 end                
+         if (~isempty(NT.edgepath))
+             for ec = 1:NT.nedge
+                 if (~isempty(NT.edgepath{ec}))
+                     for i = 1:size(NT.nodepos,2)
+                         NT.edgepath{ec}(:,i) = NT.edgepath{ec}(:,i)*scl(i);
+                     end
+                 end
+             end
+         end
+
+         % update edge widths if they exist
+         if (~isempty(NT.edgewidth))
+             if (abs(scl(1)-scl(2))>10*eps)
+                 error('Currently cannot rescale edge widths if x and y scalings are different: %f', scl)
+             end
+             for ec = 1:NT.nedge
+                NT.edgewidth{ec} = NT.edgewidth{ec}*scl(1); 
              end
          end
 
