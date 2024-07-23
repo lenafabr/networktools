@@ -1285,6 +1285,14 @@ methods
             end
         end
         NT.edgelens = NT.edgelens*scl;
+
+        % update edge widths if they exist
+         if (~isempty(NT.edgewidth))
+             disp('Rescaling edge widths as well as lengths!')
+             for ec = 1:NT.nedge
+                NT.edgewidth{ec} = NT.edgewidth{ec}*scl; 
+             end
+         end
      end
 
      function scaleCoords3D(NT,scl)
