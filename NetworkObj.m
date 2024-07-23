@@ -1274,7 +1274,7 @@ methods
      
      function scaleCoords(NT,scl)
         % multiply all spatial coordinates by scl
-         
+         disp('Scaling all coords, including edge widths')
         NT.nodepos = NT.nodepos*scl;
         for ec = 1:NT.nedge
             if (~isempty(NT.edgepath))
@@ -1285,6 +1285,13 @@ methods
             end
         end
         NT.edgelens = NT.edgelens*scl;
+
+         % update edge widths if they exist
+         if (~isempty(NT.edgewidth))           
+             for ec = 1:NT.nedge
+                NT.edgewidth{ec} = NT.edgewidth{ec}*scl; 
+             end
+         end
      end
 
      function scaleCoords3D(NT,scl)
