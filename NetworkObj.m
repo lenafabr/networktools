@@ -1286,8 +1286,8 @@ methods
         end
         NT.edgelens = NT.edgelens*scl;
 
-         % update edge widths if they exist
-         if (~isempty(NT.edgewidth))           
+        % update edge widths if they exist
+         if (~isempty(NT.edgewidth))
              for ec = 1:NT.nedge
                 NT.edgewidth{ec} = NT.edgewidth{ec}*scl; 
              end
