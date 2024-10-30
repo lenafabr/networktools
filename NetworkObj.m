@@ -342,7 +342,8 @@ methods
         opt = struct();
         opt.nodelabels = {}; % are there any labels for the nodes?
         opt.WRITEEVS = false; % should the edge values be written?
-        %opt.WRITENVS = true; % should the node values be written?
+         % output extra lines for edge path coordinates?
+        opt.WRITEPATHS = false;
 
         if (nargin > 2)
             opt = copyStruct(options, opt);
@@ -387,6 +388,22 @@ methods
             edgefmtstring = "EDGE %d %d %d %20.10f\n";
             for ec = 1:size(NT.edgenodes)
                 fprintf(of,edgefmtstring,ec, NT.edgenodes(ec,:), NT.edgelens(ec));
+            end
+        end
+
+        if (opt.WRITEPATHS)
+            % output lines giving cartesian coordinates for each edge
+            % format:
+            % EDGEPATH EC NPT x1, x2, ... x_npt, y1, y2, ... y_npt, [z_1,
+            % z_2, ... z_npt]
+            % where NPT is the number of points along the edge, z only
+            % included if network dimensionality is 3
+
+            for ec = 1:NT.nedge
+                path = NT.edgepath{ec};
+                npt = size(path,1);
+                fmtstr = ['EDGEPATH %d %d ' repmat(['%20.10f '],1,npt*NT.dim) '\n'];
+                fprintf(of,fmtstr,ec, npt, path(:,1)',path(:,2)');
             end
         end
         
@@ -725,6 +742,10 @@ methods
         %% output network as pdb formatted file
         % tracing along edge paths
                 
+        if (NT.dim~=3)
+            error('pdb output only allowed for networks defined in 3D')
+        end
+        
         if (~exist('scl','var'))
             scl = 10;
         end
