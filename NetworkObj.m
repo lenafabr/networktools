@@ -420,9 +420,12 @@ methods
         
     end
     
-    function [NTgraph,A] = makeGraph(NT)
+    function [NTgraph,A,edgeN2G, edgeG2N] = makeGraph(NT)
         % convert network into a graph structure (via adjacency matrix)
-        
+        % edgeNT2G = for each network edge, corresponding edge index in
+        % graph
+        % edgeG2NT = for each graph edge, corresponding index in network
+
         % set up a connectivity matrix
         A = zeros(size(NT.nodepos,1),size(NT.nodepos,1));
         for ec = 1:size(NT.edgenodes,1)
@@ -432,6 +435,16 @@ methods
         % make into a graph structure
         NTgraph = graph(A);
         
+        edgenodes = NT.edgenodes; % make earlier node first
+        for ec = 1:NT.nedge
+            edgenodes(ec,:) = sort(NT.edgenodes(ec,:));
+        end
+
+        [tmpN,Nsort] = sortrows(edgenodes,[1,2]);
+        [tmpG,Gsort] = sortrows(NTgraph.Edges.EndNodes,[1,2]);
+
+        edgeN2G(Nsort) = Gsort;
+        edgeG2N(Gsort) = Nsort;
     end
     
     function [NTgraph,allcoords] = makeGraphEdgePath(NT)
