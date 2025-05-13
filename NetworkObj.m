@@ -357,7 +357,7 @@ methods
         nodefmtstring = ['NODE %d ' repmat(['%20.10f '],1,NT.dim+1) '\n'];
         nodelblfmtstring = ['NODE %d ' repmat(['%20.10f '],1,NT.dim+1) '%s \n'];
         %
-        for pc = 1:size(NT.nodepos)
+        for pc = 1:size(NT.nodepos,1)
             
             if (isempty(NT.nodevals))
                 val = 0.0;              
@@ -386,7 +386,7 @@ methods
             end
         else
             edgefmtstring = "EDGE %d %d %d %20.10f\n";
-            for ec = 1:size(NT.edgenodes)
+            for ec = 1:size(NT.edgenodes,1)
                 fprintf(of,edgefmtstring,ec, NT.edgenodes(ec,:), NT.edgelens(ec));
             end
         end
