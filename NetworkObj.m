@@ -700,7 +700,7 @@ methods
             NT.edgelens(ectarget) = NT.cumedgelen{ectarget}(end);
 
             if (~isempty(NT.edgevals))
-                NT.edgevals(nedge+1) = 0;
+                NT.edgevals(nedge+1) = {};
             end
             if (~isempty(NT.edgewidth))
                 NT.edgewidth{nedge+1} = {};
@@ -881,6 +881,7 @@ methods
      function [nodeplotH,edgeplotH] = plotNetwork(NT,options)
          
          opt.labels = 0;
+         opt.Parent = gca; % parent axes to plot on
          opt.nodeplotopt = {'filled'};
          opt.nodesize = 20;
          opt.edgestyle = '-';
@@ -940,7 +941,7 @@ methods
                      end
                      
                      if (dim==2)
-                         edgeplotH(ec) = plot(path(:,1)*scl,path(:,2)*scl,opt.edgestyle,'Color',opt.edgecolor(ec,:),opt.edgeplotopt{:});
+                         edgeplotH(ec) = plot(path(:,1)*scl,path(:,2)*scl,opt.edgestyle,'Color',opt.edgecolor(ec,:),opt.edgeplotopt{:},'Parent',opt.Parent);
                      else
                          edgeplotH(ec) = plot3(path(:,1)*scl,path(:,2)*scl,path(:,3)*scl,opt.edgestyle,'Color',opt.edgecolor(ec,:),opt.edgeplotopt{:});
                      end
@@ -969,7 +970,7 @@ methods
                  else
                      p1 = edgenodes(ec,1); p2 = edgenodes(ec,2);
                      if (dim==2)
-                         plot(nodepos([p1,p2],1)*scl,nodepos([p1,p2],2)*scl,'Color',opt.edgecolor(ec,:),opt.edgeplotopt{:});
+                         plot(nodepos([p1,p2],1)*scl,nodepos([p1,p2],2)*scl,'Color',opt.edgecolor(ec,:),opt.edgeplotopt{:},'Parent',opt.Parent);
                      else
                          plot3(nodepos([p1,p2],1)*scl,nodepos([p1,p2],2)*scl,nodepos([p1,p2],3)*scl,'Color',opt.edgecolor(ec,:),opt.edgeplotopt{:});
                      end
@@ -980,7 +981,8 @@ methods
          end
          if (~isempty(opt.plotnodes))
              if (dim==2)
-                 nodeplotH = scatter(nodepos(opt.plotnodes,1)*scl,nodepos(opt.plotnodes,2)*scl,opt.nodesize(opt.plotnodes),opt.nodecolor(opt.plotnodes,:),opt.nodeplotopt{:});
+                 nodeplotH = scatter(nodepos(opt.plotnodes,1)*scl,nodepos(opt.plotnodes,2)*scl,opt.nodesize(opt.plotnodes),...
+                     opt.nodecolor(opt.plotnodes,:),opt.nodeplotopt{:},'Parent',opt.Parent);
              else
                  nodeplotH = scatter3(nodepos(opt.plotnodes,1)*scl,nodepos(opt.plotnodes,2)*scl,nodepos(opt.plotnodes,3)*scl,...
                      opt.nodesize(opt.plotnodes),opt.nodecolor(opt.plotnodes,:),opt.nodeplotopt{:});

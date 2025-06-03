@@ -171,6 +171,7 @@ function NTlocal = getNTlocal(NTobj)
     NTlocal.edgepath = NTobj.edgepath;
     NTlocal.nodeactive = true(NTobj.nnode,1);
     NTlocal.edgeactive = true(NTobj.nedge,1);
+    NTlocal.edgewidth=NTobj.edgewidth;
     NTlocal.filtered = true;
 return
 
@@ -1217,7 +1218,7 @@ function pushbuttonFilterActive_Callback(hObject, eventdata, handles)
 
      filterActiveNetwork(newf, NTlocal.nodepos, NTlocal.edgenodes,...
             NTlocal.nodeactive, NTlocal.edgeactive, NTlocal.edgepath,...
-            NTobj);
+            NTlocal.edgewidth,NTobj);
 
      % also replot the network in the object
      NTlocal = getNTlocal(NTobj);
@@ -1226,7 +1227,7 @@ function pushbuttonFilterActive_Callback(hObject, eventdata, handles)
 return
 
 function mapall2act = filterActiveNetwork(newf, nodepos, edgenodes,...
-                                  nodeact, edgeact, edgepath, NT)
+                                  nodeact, edgeact, edgepath, edgewidth, NT)
     % from a full list of nodes and edges (some inactive)
     % filter out only the active ones and make a clean network obj
 
@@ -1254,8 +1255,8 @@ function mapall2act = filterActiveNetwork(newf, nodepos, edgenodes,...
     % copy over active edge paths
     NT.edgepath = edgepath(edgeact);
 
-    % copy over edge widths
-    NT.edgewidth = NT.edgewidth(edgeact);
+    % copy over edge widths  
+    NT.edgewidth = edgewidth(edgeact);
     
     % set up all the other arrays in the network
     NT.setupNetwork();

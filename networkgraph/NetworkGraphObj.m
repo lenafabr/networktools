@@ -374,12 +374,13 @@ classdef NetworkGraphObj < matlab.mixin.Copyable
          
          for ec = 1:NT.graph.numedges
              npt = ceil(Edges.edgelens(ec)/dxwant) + 1;
-             NT.reinterpolateEdgePath(ec,npt);
+             NT.reinterpolateEdgePath(ec,max(npt,2));
          end
      end
      
      function fixEdgePathEndPoints(NT,ec)
-         % fix endpoints of an edge path
+         % fix endpoints of an edge path to match up to the end-nodes of
+         % this edge
          Edges = NT.graph.Edges;
          
          path = Edges.edgepath{ec};
