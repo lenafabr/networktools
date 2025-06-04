@@ -1,3 +1,5 @@
+%% Get access to examples directory
+addpath(genpath('./examples'))
 % -----------
 %% This is an example script to extract a network structure from an image
 % The image should be grayscale: recommended to use a Probabilities file 
