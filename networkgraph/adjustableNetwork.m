@@ -77,9 +77,10 @@ classdef adjustableNetwork < handle
          function setNodeEdges(self)
              % keep track of edges connected to each node, to avoid
              % recalculating
-             G = self.NT.graph;
-             for nc = 1:G.numnodes
-                 self.nodeedges{nc} = [outedges(G,nc); inedges(G,nc)];
+             G = self.NT.graph;             
+             for ncc = 1:G.numnodes
+                 nodename = G.Nodes.Name{ncc};
+                 self.nodeedges{ncc} = [outedges(G,nodename); inedges(G,nodename)];
              end
          end
          
