@@ -1,4 +1,4 @@
-function [nodepos,edgenodes,edgevals,nodelabels] = loadnetworkstruct(fname,options)
+function [nodepos,edgenodes,edgevals,nodelabels,edgepaths] = loadnetworkstruct(fname,options)
 % load network structure from file fname
 
 % load several structures at once?
@@ -17,6 +17,7 @@ fid = fopen(fname);
 tline = fgetl(fid);
 clear nodepos edgenodes
 struct = 0;
+edgepaths = {};
 
 while (ischar(tline))
     
@@ -40,7 +41,7 @@ while (ischar(tline))
     %disp(tline);
     
     % split line by whitespace
-    words= strsplit(tline);
+    words= strsplit(tline);   
     
     if(strcmpi(words(1),'NODE'))
         % read in node position       
@@ -64,7 +65,19 @@ while (ischar(tline))
         nums= cellfun(@(i) str2num(i), words(2:end));
         edgenodes(nums(1),:) = nums(2:3);
         edgevals(nums(1),:) = nums(4:end);
+    elseif(strcmpi(words(1),'EDGEPATH'))
+        % read in an edge path
+        nums= cellfun(@(i) str2double(i), words(2:end));
+        nums = nums(~isnan(nums));
+
+        ec = nums(1); % which edge
+        npt = nums(2); % number of points along edge
+        xpt = nums(3:2+npt);
+        ypt = nums(3+npt:2*npt+2);
+
+        edgepaths{ec} = [xpt' ypt'];
     end
+
     tline = fgetl(fid);
     
 end

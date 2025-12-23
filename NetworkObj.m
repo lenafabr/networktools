@@ -67,7 +67,7 @@ methods
         end
         
         % load a network from file
-        [nodepos,edgenodes,edgevals,nodelabels] = loadnetworkstruct(fname);
+        [nodepos,edgenodes,edgevals,nodelabels,edgepaths] = loadnetworkstruct(fname);
         
         
         if (opt.dim>0)
@@ -84,6 +84,9 @@ methods
         NT.nodelabels = nodelabels;
         
         NT.setupNetwork();
+        if (~isempty(edgepaths))
+            NT.edgepath = edgepaths;
+        end
         
         % get rid of doubled edges
         if opt.rmduplicate
@@ -700,7 +703,11 @@ methods
             NT.edgelens(ectarget) = NT.cumedgelen{ectarget}(end);
 
             if (~isempty(NT.edgevals))
-                NT.edgevals(nedge+1) = {};
+                if (iscell(NT.edgevals))
+                    NT.edgevals(nedge+1) = {};
+                else
+                    NT.edgevals(nedge+1) = NT.edgevals(ectarget);
+                end
             end
             if (~isempty(NT.edgewidth))
                 NT.edgewidth{nedge+1} = {};
@@ -888,10 +895,13 @@ methods
          opt.edgecolor = [0 0 0];
          opt.nodecolor = [0 0 1];
          opt.plotnodes = 1:NT.nnode;
-         opt.plotedges = 1;
+         opt.plotedges = true;
          opt.edgeplotopt = {'LineWidth',.5};
          % plot curved paths instead of straight edges
-         opt.plotedgepath = 1;
+         opt.plotedgepath = true;
+         % use fast edge plotting (does not return individual handles, no
+         % data tip index shown for edges)
+         opt.plotedgefast = true;
          % show data tips as edge or node index
          opt.datatipindex = false;
          % scaling factor
@@ -930,7 +940,45 @@ methods
          % end
          
          dttemplateset = false;
-         if (opt.plotedges)
+
+         if (opt.plotedges && ~opt.datatipindex && opt.plotedgefast)
+             %% Fast edge plotting. Does not provide datatip indices
+             if (~isempty(NT.edgepath) & opt.plotedgepath)
+                 % plot curved paths of the edges
+
+                 % number of control points on each path
+                 pathlens = cellfun(@(x) size(x,1), NT.edgepath);
+                 totpath = sum(pathlens);
+
+                 % preallocate coords to plot
+                 XYZplot = zeros(totpath + NT.nedge,NT.dim);
+
+                 ct = 0;
+                 for ec = 1:NT.nedge
+                    XYZplot(ct+1:ct+pathlens(ec),:) = NT.edgepath{ec};
+                    % use nan to break up distinct edges
+                    XYZplot(ct + pathlens(ec)+1,:) = [NaN NaN NaN];
+                    ct=ct+pathlens(ec)+1;
+                 end
+             else % just plot straight edges between nodes
+                 % preallocate coords to plot
+                 XYZplot = zeros(3*NT.nedge,NT.dim);
+
+                 XYZplot(1:3:end,:) = NT.nodepos(NT.edgenodes(:,1),:);
+                 XYZplot(2:3:end,:) = NT.nodepos(NT.edgenodes(:,2),:);
+                 XYZplot(3:3:end,:) = NaN;
+             end
+
+            if (NT.dim==2)
+                edgeplotH = plot(XYZplot(:,1),XYZplot(:,2),'k.-')
+            else
+                edgeplotH = plot3(XYZplot(:,1),XYZplot(:,2),XYZplot(:,3),'k.-')
+            end
+            hold all
+            axis equal
+         elseif (opt.plotedges)
+                 % plot edges using the old slow way interating over each
+                 % edge                
              for ec = 1:size(edgenodes,1)
                  if (~isempty(NT.edgepath) & opt.plotedgepath)
                      % plot curved paths of the edges
