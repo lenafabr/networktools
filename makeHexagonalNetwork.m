@@ -118,7 +118,7 @@ title('NetworkObj NT with Node Labels');
 
 
 %% Store it in the .net file
-output_filename = '/home/yuz261/Research/ER_Ca_refill_sims/hexa/hexa.net';
+output_filename = '~/UCSD/proj/ERCaSims/networks/hcpnetwork.net';
 fid = fopen(output_filename, 'w');
 
 % --- Write node section ---

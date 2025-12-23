@@ -406,7 +406,11 @@ methods
                 path = NT.edgepath{ec};
                 npt = size(path,1);
                 fmtstr = ['EDGEPATH %d %d ' repmat(['%20.10f '],1,npt*NT.dim) '\n'];
-                fprintf(of,fmtstr,ec, npt, path(:,1)',path(:,2)');
+                if (NT.dim==2)
+                    fprintf(of,fmtstr,ec, npt, path(:,1)',path(:,2)');
+                elseif (NT.dim==3)
+                    fprintf(of,fmtstr,ec, npt, path(:,1)',path(:,2)',path(:,3)');
+                end
             end
         end
         
