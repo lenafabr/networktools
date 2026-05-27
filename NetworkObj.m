@@ -93,6 +93,11 @@ methods
             NT.removeDoubleEdges();
             NT.setupNetwork() % reset arrays
         end    
+
+        if (~isempty(edgepaths))
+            % set cumulative edge lengths
+            NT.setCumEdgeLen(1:NT.nedge,true)
+        end
     end
     
     function setupNetwork(NT,resetedgepath)
@@ -961,7 +966,7 @@ methods
                  for ec = 1:NT.nedge
                     XYZplot(ct+1:ct+pathlens(ec),:) = NT.edgepath{ec};
                     % use nan to break up distinct edges
-                    XYZplot(ct + pathlens(ec)+1,:) = [NaN NaN NaN];
+                    XYZplot(ct + pathlens(ec)+1,:) = NaN*ones(1,NT.dim);
                     ct=ct+pathlens(ec)+1;
                  end
              else % just plot straight edges between nodes
@@ -974,9 +979,9 @@ methods
              end
 
             if (NT.dim==2)
-                edgeplotH = plot(XYZplot(:,1),XYZplot(:,2),'k.-')
+                edgeplotH = plot(XYZplot(:,1),XYZplot(:,2),'k.-',opt.edgeplotopt{:})
             else
-                edgeplotH = plot3(XYZplot(:,1),XYZplot(:,2),XYZplot(:,3),'k.-')
+                edgeplotH = plot3(XYZplot(:,1),XYZplot(:,2),XYZplot(:,3),'k.-',opt.edgeplotopt{:})
             end
             hold all
             axis equal
