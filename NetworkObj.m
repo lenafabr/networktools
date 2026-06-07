@@ -270,7 +270,7 @@ methods
         NT.setupNetwork()                
                 
         if (~isempty(NT.nodevals)); NT.nodevals = NT.nodevals(keepind); end
-        if (~isempty(NT.edgevals)); NT.edgevals = NT.edgevals(mapnew2oldedge); end
+        if (~isempty(NT.edgevals)); NT.edgevals = NT.edgevals(mapnew2oldedge,:); end
         if (~isempty(NT.edgewidth)); NT.edgewidth = NT.edgewidth(mapnew2oldedge); end
         if (~isempty(NT.edgepath)); NT.edgepath = NT.edgepath(mapnew2oldedge); end
         if (~isempty(NT.edgelens)); NT.edgelens = NT.edgelens(mapnew2oldedge); end
@@ -715,7 +715,7 @@ methods
                 if (iscell(NT.edgevals))
                     NT.edgevals(nedge+1) = {};
                 else
-                    NT.edgevals(nedge+1) = NT.edgevals(ectarget);
+                    NT.edgevals(nedge+1,:) = NT.edgevals(ectarget,:);
                 end
             end
             if (~isempty(NT.edgewidth))
