@@ -55,11 +55,15 @@ rawimgs = probimgs;
 for fc = 1:nframe
     disp([fc nframe])
     probimgs(:,:,fc) = imread(probimgfile,fc);
+    probimgs(:,:,fc) = rescale(probimgs(:,:,fc));
     rawimgs(:,:,fc) = imread(rawimgfile,fc);
+    rawimgs(:,:,fc) = rescale(rawimgs(:,:,fc));
 end
 
+%% View the probability or raw image
+imshow(rawimgs(:,:,1),[])
 %% threshold the first image and use this to define a cropping box
-docrop = true; % do you want to do cropping?
+docrop = false; % do you want to do cropping?
 % expand the cropping box by some number of pixels on either side
 pxexpandbox = 30;
 
@@ -158,6 +162,12 @@ end
 %% Save network objects for later use (to be reloaded into matlab sa needed)
 savefile = [dirname 'COS7P13_mitoBFP_eGFP_mcherry-Sec61b_networks.mat'];
 save(savefile,'dirname','probimgfile','rawimgfile','allnetworks','cropbox')
+
+%% Output a standard .net file (for use with networktools) for each
+for nc = 1:length(allnetworks)
+    NT = allnetworks(nc);
+    NT.outputNetwork([dirname sprintf('networks/COS7P13_mitoBFP_eGFP_mcherry-Sec61b_network_%0.3d.net',nc)])
+end
 
 %% Output info on the networks to be loaded in other software (eg: with python, etc)
 % one text file per network
