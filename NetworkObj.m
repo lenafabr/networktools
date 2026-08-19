@@ -1066,18 +1066,21 @@ methods
          hold off
      end
      
-     function plotNetworkField(NT,radii,fieldValues, options)
+     function patchH = plotNetworkField(NT,radii,fieldValues, options)
          % plot network with appropriate edge radii
          % with edges colored according to some set of field value
-
+         % returns array of patch object handles so (eg) color data can be
+         % changed afterwards
 
          % default options
          opt = struct();
+         % default axes to plot on
+         opt.Parent = gca;
          opt.FaceAlpha = 1; % transparency of edges
          if (exist('options','var'))
              opt = copyStruct(options,opt);
          end
-
+         
          for ec = 1:NT.nedge
              xy = NT.edgepath{ec};
              r  = radii(ec);
@@ -1090,11 +1093,13 @@ methods
              [x, y] = boundary(poly);
 
              % 3. Draw as a patch with scalar CData
-             patch('XData', x, 'YData', y, ...
+             h = patch('XData', x, 'YData', y, ...
                  'CData', val, ...              % Assign raw field value
                  'FaceColor', 'flat', ...       % Map CData through active colormap
                  'EdgeColor', 'none', ...
-                 'FaceAlpha', opt.FaceAlpha);
+                 'FaceAlpha', opt.FaceAlpha, ...
+                 'Parent',opt.Parent);
+             patchH(ec) = h;
          end
 
          box on; axis equal
