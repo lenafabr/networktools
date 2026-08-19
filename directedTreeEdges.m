@@ -2,8 +2,16 @@ function [isset,wasreversed] = directedTreeEdges(NT,topnode,isset,wasreversed)
 % change around edge directions on a network to convert to a directed tree
 % starting at the given topnode
 % edges point down the tree
-% will also fix edgepaths that got reversed previously
+% will also fix edgepaths as needed
+% If isset and wasreversed are missing, assume you are starting from no
+% directional information and set them all to false
 
+if (~exist('isset','var'))
+    isset = false(1,NT.nedge);
+end
+if (~exist('wasreversed','var'))
+    wasreversed = false(1,NT.nedge);
+end
 
 if (all(isset))
     % completely done setting tree

@@ -1066,22 +1066,56 @@ methods
          hold off
      end
      
-     function interplen = reinterpolateEdgePaths(NT,dxwant,options)
-         % reinterpolate the edge paths to have points
-         % at *approximately* the desired spacing
-         
+     function plotNetworkField(NT,radii,fieldValues, options)
+         % plot network with appropriate edge radii
+         % with edges colored according to some set of field value
+
+
+         % default options
          opt = struct();
-         opt.interpmethod = 'linear';
-         
+         opt.FaceAlpha = 1; % transparency of edges
          if (exist('options','var'))
              opt = copyStruct(options,opt);
          end
-         
+
+         for ec = 1:NT.nedge
+             xy = NT.edgepath{ec};
+             r  = radii(ec);
+             val = fieldValues(ec);
+
+             % 1. Create a 2D ribbon polygon from the path and radius
+             poly = polybuffer(xy, 'lines', r);
+
+             % 2. Extract boundary coordinates
+             [x, y] = boundary(poly);
+
+             % 3. Draw as a patch with scalar CData
+             patch('XData', x, 'YData', y, ...
+                 'CData', val, ...              % Assign raw field value
+                 'FaceColor', 'flat', ...       % Map CData through active colormap
+                 'EdgeColor', 'none', ...
+                 'FaceAlpha', opt.FaceAlpha);
+         end
+
+         box on; axis equal
+     end
+
+     function interplen = reinterpolateEdgePaths(NT,dxwant,options)
+         % reinterpolate the edge paths to have points
+         % at *approximately* the desired spacing
+
+         opt = struct();
+         opt.interpmethod = 'linear';
+
+         if (exist('options','var'))
+             opt = copyStruct(options,opt);
+         end
+
          if (isempty(NT.edgepath))
              error('no edge paths computed')
          end
-         
-         NT.setCumEdgeLen();                  
+
+         NT.setCumEdgeLen();
          interplen = {};
          for ec = 1:NT.nedge
              path = NT.edgepath{ec};
