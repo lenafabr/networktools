@@ -8,9 +8,9 @@ properties
     nnode 
     nedge 
     dim 
-    degrees % degree of each node
+    degrees % degree of each nodepl
     maxdeg % max degree in network
-    nodepos % position of each node
+    nodepos % position of each nodem
     edgenodes % nodes connected by each edge
     nodenodes % nodes connected to each node
     nodeedges % edges connected to each node
