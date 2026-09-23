@@ -185,7 +185,7 @@ function menuSave_Callback(hObject, eventdata, handles)
     
     if ~NTlocal.filtered
         filterActiveNetwork(NTlocal.nodepos, NTlocal.edgenodes,...
-        NTlocal.nodeactive, NTlocal.edgeactive, NTlocal.edgepath,NTobj);
+        NTlocal.nodeactive, NTlocal.edgeactive, NTlocal.edgepath,NTlocal.edgewidth,NTobj);
         NTlocal.filtered = true;
     end
     
@@ -1392,7 +1392,7 @@ global newf NTlocal NTobj
 % make full network object
 NTcur = copy(NTobj);
 filterActiveNetwork(newf, NTlocal.nodepos, NTlocal.edgenodes,...
-    NTlocal.nodeactive, NTlocal.edgeactive, NTlocal.edgepath,...
+    NTlocal.nodeactive, NTlocal.edgeactive, NTlocal.edgepath,NTlocal.edgewidth,...
     NTcur);
 
 % set up a connectivity matrix
@@ -1453,7 +1453,7 @@ end
 locrootnode = selNodes(1); % local index of root node
 
 mapall2act = filterActiveNetwork(newf, NTlocal.nodepos, NTlocal.edgenodes,...
-        NTlocal.nodeactive, NTlocal.edgeactive, NTlocal.edgepath,...
+        NTlocal.nodeactive, NTlocal.edgeactive, NTlocal.edgepath,NTlocal.edgewidth,...
         NTobj);
 
 % new index of root node

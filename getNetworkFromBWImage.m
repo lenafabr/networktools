@@ -18,6 +18,12 @@ opt.dodisplay = 0;
 % if set to true, keep only the largest connected component
 opt.keepconncomp = true;
 
+% if true, remove all degree 0 nodes
+opt.dropdeg0nodes = true;
+
+% if true, merge all degree 2 nodes to just give longer edges
+opt.mergedeg2nodes = true;
+
 % maximum allowed jump in an edge, in pixels
 opt.maxedgestep = 5; 
 
@@ -64,7 +70,6 @@ edgesize = cellfun(@(x) length(x),comp.PixelIdxList);
 
 
 %% group directly connected nodes together
-
 allnodes = find(nodeimg(:)); % pixel indices of all nodes
 % x and y coords of all nodes
 [allnodex,allnodey] = ind2sub(size(skelimage),allnodes);
@@ -397,9 +402,16 @@ keepind = find(dokeep);
 NT.keepNodes(keepind);
 NT.setupNetwork()
 
+if (opt.dropdeg0nodes)
+    keepind = find(NT.degrees>0);
+    NT.keepNodes(keepind);
+end
+
 if (opt.keepconncomp)
     NT.keepLargestConnComp()   
 end
+
+
 
 % adjust edge paths to actually hit nodes
 for ec = 1:NT.nedge
@@ -408,6 +420,11 @@ for ec = 1:NT.nedge
 end
 
 NT.setCumEdgeLen(1:NT.nedge,1);
+
+if (opt.mergedeg2nodes)
+    NT.mergeAllEdgePaths();
+    NT.setCumEdgeLen(1:NT.nedge,1);
+end
 
 %% empty edgewidths arrays for use later
 NT.edgewidth = cell(NT.nedge,1);
