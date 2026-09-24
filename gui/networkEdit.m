@@ -168,7 +168,7 @@ return
 function NTlocal = getNTlocal(NTobj)
     NTlocal.nodepos = NTobj.nodepos;
     NTlocal.edgenodes = NTobj.edgenodes;
-    NTlocal.edgepath = NTobj.edgepath;
+    NTlocal.edgepath = NTobj.edgepath;    
     NTlocal.nodeactive = true(NTobj.nnode,1);
     NTlocal.edgeactive = true(NTobj.nedge,1);
     NTlocal.edgewidth=NTobj.edgewidth;
