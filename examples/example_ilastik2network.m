@@ -89,7 +89,7 @@ if (docrop)
     h_crop = drawrectangle('Position',cropbox)
     title('Thresholded Frame 1 and cropping box')
 else
-    docrop = [0 0 fliplr(size(probimgs(:,:,1)))];
+    cropbox = [0 0 fliplr(size(probimgs(:,:,1)))];
 end
 
 %% Crop all raw images and probability images.

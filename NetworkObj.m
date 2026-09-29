@@ -275,6 +275,12 @@ methods
         if (~isempty(NT.edgepath)); NT.edgepath = NT.edgepath(mapnew2oldedge); end
         if (~isempty(NT.edgelens)); NT.edgelens = NT.edgelens(mapnew2oldedge); end
         if (~isempty(NT.cumedgelen)); NT.cumedgelen = NT.cumedgelen(mapnew2oldedge); end
+
+        if (~isnan(NT.rootnode))
+            NT.rootnode = mapold2new(NT.rootnode);  
+            % if we no longer have a root node:
+            if (NT.rootnode<=0); NT.rootnode = NaN; end
+        end
     end
     
     function [mapnew2oldedge] = keepEdges(NT,keepind)        
@@ -713,7 +719,7 @@ methods
 
             if (~isempty(NT.edgevals))
                 if (iscell(NT.edgevals))
-                    NT.edgevals(nedge+1) = {};
+                    NT.edgevals{nedge+1} = [];
                 else
                     NT.edgevals(nedge+1,:) = NT.edgevals(ectarget,:);
                 end
@@ -1010,12 +1016,14 @@ methods
                      if (~isempty(NT.edgepath) & opt.plotedgepath & opt.datatipindex)
                           edgeplotH(ec).addprop('edgeind');
                              edgeplotH(ec).edgeind = ec;
-                         if (size(NT.edgepath{ec},1)>2)                                                         
-                             dttemplate = edgeplotH(ec).DataTipTemplate;
-                             dttemplate.FontSize=6;
-                             dttemplate.DataTipRows(1).Value = ec*ones(size(NT.edgepath{ec},1),1);
-                             dttemplate.DataTipRows(1).Label = '';
-                             dttemplate.DataTipRows(2:end) = [];
+                         if (size(NT.edgepath{ec},1)>2) 
+                             % set up data tips for this edge
+                             setPlotDataTips(edgeplotH(ec),ec)
+                             % dttemplate = edgeplotH(ec).DataTipTemplate;
+                             % dttemplate.FontSize=6;
+                             % dttemplate.DataTipRows(1).Value = ec*ones(size(NT.edgepath{ec},1),1);
+                             % dttemplate.DataTipRows(1).Label = '';
+                             % dttemplate.DataTipRows(2:end) = [];
                              dttemplateset = true;
                          else
                              edgeplotH(ec).PickableParts = 'none';
@@ -1401,7 +1409,7 @@ methods
          [mapold2new,mapnew2oldedge] = NT.keepNodes(keepnodes);
          
          mergednodes = mergednodes(mapnew2oldedge);
-         
+                  
      end
      
      function scaleCoords(NT,scl)
