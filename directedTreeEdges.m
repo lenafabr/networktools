@@ -43,12 +43,14 @@ else
             wasreversed(ec) = true;
 
             % adjust edge widths if necessary
-            % the 2nd column of edgewidth contains length along edge where
-            % the width measurement is made
-            widths = NT.edgewidth{ec};
-            if ~isempty(widths)
-                if (size(widths,2)>1)
-                    NT.edgewidth{ec}(:,2) = NT.edgelens(ec) - widths(:,2);
+            if (~isempty(NT.edgewidth))
+                % the 2nd column of edgewidth contains length along edge where
+                % the width measurement is made
+                widths = NT.edgewidth{ec};
+                if ~isempty(widths)
+                    if (size(widths,2)>1)
+                        NT.edgewidth{ec}(:,2) = NT.edgelens(ec) - widths(:,2);
+                    end
                 end
             end
         else

@@ -44,7 +44,15 @@ plotopt = struct('nodesize',20,'nodecolor',[1 0 0],'datatipindex',true)
 plotopt.edgeplotopt = {'LineWidth',2,'Color','g'};
 app = networkEdit_App('NT',NT,'img',origimg,'plotopt',plotopt);
 
+%%
+NT = NetworkObj('../data/WildongerGroup/WildongerGroupDAneuron_20260924.net',struct('dim',2));
+imshow(origimg,[])
+hold all
+NT.plotNetwork(struct('datatipindex',1,'plotoverimage',1))
+hold off
+
 %% Clean up after the GUI
+NT.rootnode = 72; % if reloading from .net file, will need to set root manually
 NT.edgevals = []; % edgevals has no meaning here
 NT.mergeAllEdgePaths(); % get rid of degree 2 nodes
 NT.keepLargestConnComp(); % get rid of disconnected pieces
