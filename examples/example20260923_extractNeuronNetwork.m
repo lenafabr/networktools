@@ -52,7 +52,7 @@ NT.plotNetwork(struct('datatipindex',1,'plotoverimage',1))
 hold off
 
 %% Clean up after the GUI
-NT.rootnode = 185; % if reloading from .net file, will need to set root manually
+%NT.rootnode = 171; % if reloading from .net file, will need to set root manually
 NT.edgevals = []; % edgevals has no meaning here
 NT.mergeAllEdgePaths(); % get rid of degree 2 nodes
 NT.keepLargestConnComp(); % get rid of disconnected pieces
