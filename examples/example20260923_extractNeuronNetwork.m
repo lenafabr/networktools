@@ -52,7 +52,7 @@ NT.plotNetwork(struct('datatipindex',1,'plotoverimage',1))
 hold off
 
 %% Clean up after the GUI
-NT.rootnode = 72; % if reloading from .net file, will need to set root manually
+NT.rootnode = 185; % if reloading from .net file, will need to set root manually
 NT.edgevals = []; % edgevals has no meaning here
 NT.mergeAllEdgePaths(); % get rid of degree 2 nodes
 NT.keepLargestConnComp(); % get rid of disconnected pieces
@@ -72,8 +72,8 @@ hold off
 
 %% Save network for later (adjust to whatever directory you want to save in)
 savedirname = '../data/WildongerGroup';
-save([savedirname 'DAneuron_20260924.mat'],'NT')
-NT.outputNetwork([savedirname 'DAneuron_20260924.net'],struct('WRITEPATHS',true));
+save([savedirname 'DAneuron_20261005.mat'],'NT')
+NT.outputNetwork([savedirname 'DAneuron_20261005.net'],struct('WRITEPATHS',true));
 
 %% Plot histogram of edge lengths, as an example statistic
 figure
