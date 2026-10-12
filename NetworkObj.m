@@ -8,9 +8,9 @@ properties
     nnode 
     nedge 
     dim 
-    degrees % degree of each nodepl
+    degrees % degree of each node
     maxdeg % max degree in network
-    nodepos % position of each nodem
+    nodepos % position of each node
     edgenodes % nodes connected by each edge
     nodenodes % nodes connected to each node
     nodeedges % edges connected to each node
@@ -356,6 +356,8 @@ methods
         opt = struct();
         opt.nodelabels = {}; % are there any labels for the nodes?
         opt.WRITEEVS = false; % should the edge values be written?
+        opt.WRITELENS = false; % should the edge length values be written?
+        opt.WRITENVS = true; % should the node values be written?
          % output extra lines for edge path coordinates?
         opt.WRITEPATHS = false;
 
@@ -367,7 +369,7 @@ methods
         fprintf(of,'%s\n','# file defining network structure')
         fprintf(of,'%s\n\n','# made with matlab NetworkObj output')
         
-        fprintf(of,'%s \n','# list of node indices and xy positions and values')        
+        fprintf(of,'%s \n','# list of node indices and xyz positions and values')        
         nodefmtstring = ['NODE %d ' repmat(['%20.10f '],1,NT.dim+1) '\n'];
         nodelblfmtstring = ['NODE %d ' repmat(['%20.10f '],1,NT.dim+1) '%s \n'];
         %
@@ -379,12 +381,15 @@ methods
                 val = NT.nodevals(pc);                
             end
             
-            if (~isempty(opt.nodelabels))
+            if (~isempty(opt.nodelabels) && opt.WRITENVS)
                 fprintf(of,nodelblfmtstring,pc, NT.nodepos(pc,:), val,opt.nodelabels{pc});
             elseif (~isempty(NT.nodelabels))
                 fprintf(of,nodelblfmtstring,pc, NT.nodepos(pc,:), val,NT.nodelabels{pc});
-            else
+            elseif(opt.WRITENVS)
                 fprintf(of,nodefmtstring,pc, NT.nodepos(pc,:), val);
+            else
+                nodefmtstring = ['NODE %d ' repmat(['%20.10f '],1,NT.dim) '\n'];
+                fprintf(of,nodefmtstring,pc, NT.nodepos(pc,:));
             end
         end
         % edge information
@@ -399,9 +404,16 @@ methods
                 fprintf(of,edgefmtstring,ec, NT.edgenodes(ec,:), NT.edgelens(ec), NT.edgevals(ec,:));
             end
         else
-            edgefmtstring = "EDGE %d %d %d %20.10f\n";
-            for ec = 1:size(NT.edgenodes,1)
-                fprintf(of,edgefmtstring,ec, NT.edgenodes(ec,:), NT.edgelens(ec));
+            if(opt.WRITELENS)
+                edgefmtstring = "EDGE %d %d %d %20.10f\n";
+                for ec = 1:size(NT.edgenodes)
+                    fprintf(of,edgefmtstring,ec, NT.edgenodes(ec,:), NT.edgelens(ec));
+                end
+            else
+                edgefmtstring = "EDGE %d %d %d\n";
+                for ec = 1:size(NT.edgenodes)
+                    fprintf(of,edgefmtstring,ec, NT.edgenodes(ec,:));
+                end
             end
         end
 
@@ -460,15 +472,25 @@ methods
         % edgeNT2G = for each network edge, corresponding edge index in
         % graph
         % edgeG2NT = for each graph edge, corresponding index in network
-
+        
         % set up a connectivity matrix
-        A = zeros(size(NT.nodepos,1),size(NT.nodepos,1));
-        for ec = 1:size(NT.edgenodes,1)
-            A(NT.edgenodes(ec,1),NT.edgenodes(ec,2)) = NT.edgelens(ec);
-            A(NT.edgenodes(ec,2),NT.edgenodes(ec,1)) = NT.edgelens(ec);
+%         A = zeros(size(NT.nodepos,1),size(NT.nodepos,1));
+%         for ec = 1:size(NT.edgenodes,1)
+%             A(NT.edgenodes(ec,1),NT.edgenodes(ec,2)) = NT.edgelens(ec);
+%             A(NT.edgenodes(ec,2),NT.edgenodes(ec,1)) = NT.edgelens(ec);
+%         end
+
+        if numel(NT.edgelens) == NT.nedge
+            NTgraph = graph(NT.edgenodes(:,1),NT.edgenodes(:,2),NT.edgelens);
+            if nargout > 1
+                A = adjacency(NTgraph,"weighted");
+            end
+        else
+            NTgraph = graph(NT.edgenodes(:,1),NT.edgenodes(:,2));
+            if nargout > 1
+                A = adjacency(NTgraph);
+            end
         end
-        % make into a graph structure
-        NTgraph = graph(A);
         
         edgenodes = NT.edgenodes; % make earlier node first
         for ec = 1:NT.nedge
@@ -773,7 +795,7 @@ methods
 % 
 %      end
      
-         function outputPDB(NT,outfile,scl,sclval)
+         function outputPDB(NT,outfile,scl,sclval,edgevalidx)
         %% output network as pdb formatted file
         % tracing along edge paths
                 
@@ -787,6 +809,10 @@ methods
         if (~exist('sclval','var'))
             sclval = 1;
         end
+        if(~exist('edgevalidx','var'))
+            edgevalidx = 1;
+        end
+
         
         if (isempty(NT.edgepath))
             %NT.outputPDB_old(NT,outfile,scl);
@@ -816,16 +842,19 @@ methods
         for nc = 1:NT.nnode           
             name = 'N';            
             
-            if (~isempty(NT.edgevals))
-                val = mean(NT.edgevals(NT.nodeedges(nc,1:NT.degrees(nc))));
+            if (~isempty(NT.edgevals) && NT.degrees(nc) > 0)
+                val = mean(NT.edgevals(NT.nodeedges(nc,1:NT.degrees(nc)),edgevalidx));
+            elseif(NT.degrees(nc)==0)
+                val = 0;
             else
                 val = 1;
             end
             
             
             pos = scl*NT.nodepos(nc,:);
-            fprintf(of,'HETATM%5d%5s SSN X   0    %8.3f%8.3f%8.3f%6.2f%6.2f%13s\n',...
+            fprintf(of,'HETATM%5d%5s SSN X   0    %8.3f%8.3f%8.3f%6.2f%8.4f%13s\n',...
                 nc,name,pos,1,val*sclval,'C');
+
             
             % keep track of all connections for this node
             connections(nc,1) = nc;            
@@ -862,15 +891,16 @@ methods
             n1 = NT.edgenodes(ec,1); n2 = NT.edgenodes(ec,2);
             
             if (~isempty(NT.edgevals))
-                val = NT.edgevals(ec);
+                val = NT.edgevals(ec,edgevalidx);
             end
+
             
             edgepath = NT.edgepath{ec};
             for cc = 2:size(edgepath,1)-1  
                 ind = beadind{ec}(cc);
                 pos = scl*edgepath(cc,:);                               
                 
-                fprintf(of,'HETATM%5d%5s SSN X   0    %8.3f%8.3f%8.3f%6.2f%6.2f%13s\n',...
+                fprintf(of,'HETATM%5d%5s SSN X   0    %8.3f%8.3f%8.3f%6.2f%8.4f%13s\n',...
                          ind,name,pos,1,val*sclval,'C');
                 
                 if (cc==2)
