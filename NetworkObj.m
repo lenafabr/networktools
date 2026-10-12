@@ -356,7 +356,7 @@ methods
         opt = struct();
         opt.nodelabels = {}; % are there any labels for the nodes?
         opt.WRITEEVS = false; % should the edge values be written?
-        opt.WRITELENS = false; % should the edge length values be written?
+        opt.WRITELENS = true; % should the edge length values be written?
         opt.WRITENVS = true; % should the node values be written?
          % output extra lines for edge path coordinates?
         opt.WRITEPATHS = false;
@@ -381,9 +381,9 @@ methods
                 val = NT.nodevals(pc);                
             end
             
-            if (~isempty(opt.nodelabels) && opt.WRITENVS)
+            if (~isempty(opt.nodelabels))
                 fprintf(of,nodelblfmtstring,pc, NT.nodepos(pc,:), val,opt.nodelabels{pc});
-            elseif (~isempty(NT.nodelabels))
+            elseif (~isempty(NT.nodelabels) && opt.WRITENVS)
                 fprintf(of,nodelblfmtstring,pc, NT.nodepos(pc,:), val,NT.nodelabels{pc});
             elseif(opt.WRITENVS)
                 fprintf(of,nodefmtstring,pc, NT.nodepos(pc,:), val);
@@ -1262,8 +1262,6 @@ methods
          % end-node width
          % mergednodes stores all original nodes that went into the edge in
          % the final network
-         % WARNING: will always keep root node, even if it has degree 2
-
         
          if (~exist('outedgeonly','var'))
              outedgeonly = false;
@@ -1287,16 +1285,25 @@ methods
          else
              startnodes = degnot2;
          end
+            
+         ncc = 1;
+         while(ncc <= length(startnodes) || any(~havechecked))
+            if(ncc > length(startnodes))
+                % there are at least 1 donut(s)
+                nc = NT.edgenodes(find(~havechecked,1),1);
+                startnodes = [startnodes; nc];
+                ncc = ncc+1;
+            else
+                nc = startnodes(ncc);
+                ncc = ncc+1;
+            end
          
-         for ncc = 1:length(startnodes)
-             nc = startnodes(ncc);
+         %for ncc = 1:length(startnodes)
+             %nc = startnodes(ncc);
                          
-             for bc =1:NT.degrees(nc)
+            for bc =1:NT.degrees(nc)
                  nclist= [nc]; edgelist = []; edgedir = [];
                  
-                 % start new edge path
-                 path = NT.nodepos(nc,:);
-
                  % go to each neighbor of this node
                  ncnext = NT.nodenodes(nc,bc);
                  
@@ -1314,34 +1321,26 @@ methods
                  % direction of original edges
                  if (NT.edgenodes(ecnext,1) ==nc)
                      edgedir(end+1) = 1; % outgoing edge
-
-                     if (~isempty(NT.edgepath))
-                         newpath = NT.edgepath{ecnext}(2:end,:);
-                         path = [path; newpath];
-                     end
                  else
                      edgedir(end+1) = -1; % incoming edge
-
-
-                     if (~isempty(NT.edgepath))
-                         newpath = NT.edgepath{ecnext}(1:end-1,:);
-                         path = [path; flipud(newpath)];
-                     end
                  end
-
+                 
                  if (outedgeonly & edgedir(end)==-1)
                      % only following along outgoing edges
                      havechecked(ec) = false;
                      continue
                  end
                  
-                 if (degnext~=2)
+                 if (any(startnodes == ncnext))
                      % have reached a junction or terminus
+                     if numel(nclist) == 2
+                         mergednodes{ec} = nclist;
+                     end
                      continue
                  end
                  
                   % keep building up edge
-                 while degnext==2
+                 while ~any(startnodes == ncnext)
                      % keep building up edge                    
                      bc2 = find(NT.nodenodes(ncnext,1:degnext)~=nclist(end-1));
                      if (length(bc2)>1)
@@ -1357,40 +1356,25 @@ methods
                      nclist(end+1) = ncnext; 
                     
                      % direction of original edges
-                     if (NT.edgenodes(ecnext,1)==ncnext)
+                     if (bc2==1)
                          edgedir(end+1) = -1; % reverse direction
-
-                         if (~isempty(NT.edgepath))
-                             newpath = NT.edgepath{ecnext}(1:end-1,:);
-                             path = [path; flipud(newpath)];
-                         end
                      else
                          edgedir(end+1) = 1;
-
-                         if (~isempty(NT.edgepath))
-                             newpath = NT.edgepath{ecnext}(2:end,:);
-                             path = [path; newpath];
-                         end
                      end
-
-                
                  end
                  
                  % make a path for this edge
-                % path = NT.nodepos(nclist,:);
+                 path = NT.nodepos(nclist,:);
                  
                  % make new long edge
                  ecnew = size(NT.edgenodes,1)+1;
                  NT.edgenodes(ecnew,:) = [nclist(1) nclist(end)];
                  
                  % make a path for this edge
-                 %NT.edgepath{ecnew} = NT.nodepos(nclist,:);
-                 if (~isempty(NT.edgepath))
-                     NT.edgepath{ecnew} = path;
-                 end
+                 NT.edgepath{ecnew} = NT.nodepos(nclist,:);
                  
                  NT.setCumEdgeLen(ecnew);
-                 NT.edgelens(ecnew) = NT.cumedgelen{ecnew}(end);
+                 NT.edgelens(ecnew) = max(sum(NT.edgelens(edgelist)), NT.cumedgelen{ecnew}(end));
                  if (~isempty(NT.edgevals))
                      if (iscell(NT.edgevals))
                          NT.edgevals{ecnew} = [];
@@ -1428,7 +1412,7 @@ methods
                  
                  % mark intermediate nodes for removal
                  dokeep(nclist(2:end-1)) = false;
-             end             
+            end
          end
          
          % update connectivity info
@@ -1439,7 +1423,7 @@ methods
          [mapold2new,mapnew2oldedge] = NT.keepNodes(keepnodes);
          
          mergednodes = mergednodes(mapnew2oldedge);
-                  
+         
      end
      
      function scaleCoords(NT,scl)
