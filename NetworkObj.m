@@ -193,28 +193,39 @@ methods
                
     end
     
-    function removeDoubleEdges(NT)
+    function [mapnew2oldedge] = removeDoubleEdges(NT)
         %% get rid of all duplicate edges, so you only have one edge
         % between each pair of nodes
+
+        disp('Removing duplicate edges: ec1, ec2, nodes1, nodes2')
+        
         badind = [];
         newedgenodes = [];
         edgenodes= NT.edgenodes;
+
+        % logical array, do we keep each edge?
+        dokeepedges = true(1,NT.nedge); 
         for ec1 = 1:NT.nedge
             duplicatefound = 0;
             for ec2 = ec1+1:NT.nedge
                 if (edgenodes(ec1,1)==edgenodes(ec2,2) & edgenodes(ec1,2)==edgenodes(ec2,1))
                     disp([ec1 ec2 edgenodes(ec1,:) edgenodes(ec2,:)])
-                    duplicatefound = 1;
+                    %duplicatefound = 1;
+                    dokeepedges(ec2) = false; % drop extra edge
                 elseif (edgenodes(ec1,1)==edgenodes(ec2,1) & edgenodes(ec1,2)==edgenodes(ec2,2))
                     disp([ec1 ec2 edgenodes(ec1,:) edgenodes(ec2,:)])
-                    duplicatefound=1;
+                    %duplicatefound=1;
+                    dokeepedges(ec2) = false; % drop extra edge
                 end
             end
-            if ~duplicatefound
-                newedgenodes = [newedgenodes; edgenodes(ec1,:)];
-            end
+            % if ~duplicatefound
+            %     newedgenodes = [newedgenodes; edgenodes(ec1,:)];
+            % end
         end
-        NT.edgenodes = newedgenodes;
+        %NT.edgenodes = newedgenodes;
+
+       % remove the duplicate edges
+       [mapnew2oldedge] = NT.keepEdges(find(dokeepedges));
     end
     
     function connectNodeNearest(NT,pos)
