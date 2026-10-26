@@ -80,7 +80,15 @@ methods
         end
         
         NT.edgenodes = edgenodes(:,1:2);
+
+        % assume first column of values read in the edge lengths
         NT.edgevals = edgevals;
+        % NT.edgelens = edgevals(:,1);
+        % if (size(edgevals,2)>1)
+        %     NT.edgevals = edgevals(:,2:end);
+        % else
+        %     NT.edgevals = [];
+        % end
         NT.nodelabels = nodelabels;
         
         NT.setupNetwork();
@@ -312,7 +320,7 @@ methods
         NT.setupNetwork()      
         
         if (~isempty(NT.edgewidth)); NT.edgewidth = NT.edgewidth(mapnew2oldedge); end               
-        if (~isempty(NT.edgevals)); NT.edgevals = NT.edgevals(mapnew2oldedge); end
+        if (~isempty(NT.edgevals)); NT.edgevals = NT.edgevals(mapnew2oldedge,:); end
         if (~isempty(NT.edgepath)); NT.edgepath = NT.edgepath(mapnew2oldedge); end
         if (~isempty(NT.edgelens)); NT.edgelens = NT.edgelens(mapnew2oldedge); end
         if (~isempty(NT.cumedgelen)); NT.cumedgelen = NT.cumedgelen(mapnew2oldedge); end

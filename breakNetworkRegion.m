@@ -70,6 +70,8 @@ for ec = 1:NT.nedge
     % get path intersection
     path = NT.edgepath{ec};    
     [xi,yi,ii] = polyxpoly(path(:,1),path(:,2),regboundw(:,1),regboundw(:,2));
+    % ignore multiple intersections for now
+    xi = xi(1,:); yi = yi(1,:); ii = ii(1,:);
     
     % parameter of intersection along the boundary
     newboundparam = boundparam0(ii(2)) + norm([xi,yi] - regboundw(ii(2),:));
